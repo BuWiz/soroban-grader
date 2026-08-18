@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Portal - Assignments</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 p-8">
+    <div class="max-w-5xl mx-auto space-y-8">
+        <div class="bg-indigo-600 text-white p-6 rounded-xl shadow flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold">Soroban Math Portal</h1>
+                <p class="text-indigo-200 text-sm">Review your due assignments and completed practice below.</p>
+            </div>
+        </div>
+
+        <!-- DUE ASSIGNMENTS QUEUE -->
+        <div class="bg-white p-6 rounded-xl shadow space-y-4">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h2 class="text-xl font-bold text-slate-800">Assignments Due</h2>
+                <span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full">{{ due_worksheets|length }} Pending</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for item in due_worksheets %}
+                <div class="border rounded-xl p-5 flex justify-between items-center bg-slate-50 hover:bg-slate-100/80 transition">
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-slate-800 text-lg">{{ item.ws.title }}</span>
+                            {% if item.ws.is_flash %}
+                            <span class="text-[10px] bg-purple-100 text-purple-700 font-black px-2 py-0.5 rounded uppercase">Flash Anzan</span>
+                            {% endif %}
+                        </div>
+                        <div class="flex gap-2">
+                            <span class="text-xs bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded">{{ item.ws.category }}</span>
+                            <span class="text-xs bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded">{{ item.ws.digits }}-Digit</span>
+                            <span class="text-xs text-slate-400 self-center">Assigned: {{ item.formatted_assigned }}</span>
+                        </div>
+                    </div>
+                    <a href="/worksheet/{{ item.ws.id }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-lg text-sm shadow">Start Work</a>
+                </div>
+                {% else %}
+                <p class="text-slate-400 text-sm p-4 col-span-2 text-center">🎉 All assignments cleared! No work currently due.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- COMPLETED HISTORY -->
+        <div class="bg-white p-6 rounded-xl shadow space-y-4">
+            <h2 class="text-xl font-bold text-slate-800 border-b pb-3">Completed Work</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for item in completed_worksheets %}
+                <div class="border rounded-xl p-4 flex justify-between items-center bg-emerald-50/40">
+                    <div>
+                        <p class="font-bold text-slate-800">{{ item.ws.title }}</p>
+                        <div class="flex gap-2 mt-1">
+                            <span class="text-xs bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded">{{ item.ws.category }}</span>
+                            <span class="text-xs bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded">{{ item.ws.digits }}-Digit</span>
+                            <span class="text-xs text-slate-400 self-center">{{ item.formatted_date }}</span>
+                        </div>
+                    </div>
+                    <span class="font-black text-lg {% if item.score >= 80 %}text-emerald-600{% else %}text-red-600{% endif %}">
+                        {{ "%.1f"|format(item.score) }}%
+                    </span>
+                </div>
+                {% else %}
+                <p class="text-slate-400 text-sm p-4 col-span-2 text-center">No completed assignments yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
