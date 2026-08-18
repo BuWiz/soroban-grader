@@ -365,4 +365,12 @@ async def submit_worksheet(request: Request, worksheet_id: int, student_name: st
     db.refresh(submission)
     db.close()
 
-    return templates.TemplateResponse(request=request, name="results.html", context={"submission": submission}) 
+    return templates.TemplateResponse(request=request, name="results.html", context={"submission": submission}) from fastapi import FastAPI
+from fastapi.responses import RedirectResponse  # Add this import
+
+app = FastAPI()
+
+# Add this root route to redirect directly to teacher
+@app.get("/")
+def read_root():
+    return RedirectResponse(url="/teacher")
