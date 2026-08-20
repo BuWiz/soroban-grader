@@ -1,77 +1,137 @@
-from fastapi import FastAPI, Request, Form, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+import os
+from fastapi import FastAPI, Depends, Form, File, UploadFile, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+import pypdf
+
+import database
 import models
-from database import engine, get_db
+import emailer
 
-# Create database tables
-models.Base.metadata.create_all(bind=engine)
+# Initialize FastAPI App
+app = FastAPI(title="Soroban Grader")
 
-app = FastAPI()
+# Database Setup
+models.Base.metadata.create_all(bind=database.engine)
 
-# Mount static files and templates
+# Static files and Template setup
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+def get_db():
+    db = database.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-# Root route - automatically redirects to teacher dashboard
+
+# ==========================================
+# ROOT REDIRECT (PERMANENT 404 FIX)
+# ==========================================
 @app.get("/")
-def read_root():
+async def root_redirect():
+    """Redirects the base URL straight to the teacher dashboard."""
     return RedirectResponse(url="/teacher")
 
 
+# ==========================================
+# TEACHER DASHBOARD & CREATION ROUTES
+# ==========================================
 @app.get("/teacher", response_class=HTMLResponse)
-def teacher_dashboard(request: Request, db: Session = Depends(get_db)):
-    worksheets = db.query(models.Worksheet).all()
-    submissions = db.query(models.Submission).all()
+async def teacher_dashboard(request: Request, db: Session = Depends(get_db)):
+    standards = db.query(models.Worksheet).all()
     return templates.TemplateResponse(
-        "teacher.html",
-        {"request": request, "worksheets": worksheets, "submissions": submissions}
+        "teacher.html", 
+        {"request": request, "standards": standards}
     )
 
+@app.post("/create-standard")
+async def create_standard(
+    title: str = Form(...),
+    operation: str = Form(...),
+    digits: str = Form(...),
+    problems: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    worksheet = models.Worksheet(
+        title=title,
+        operation=operation,
+        digits=digits,
+        problems=problems,
+        is_pdf=False
+    )
+    db.add(worksheet)
+    db.commit()
+    return RedirectResponse(url="/teacher", status_code=303)
 
+@app.post("/upload-pdf")
+async def upload_pdf(
+    title: str = Form(...),
+    operation: str = Form(...),
+    digits: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    pdf_reader = pypdf.PdfReader(file.file)
+    extracted_text = ""
+    for page in pdf_reader.pages:
+        extracted_text += page.extract_text() + "\n"
+
+    worksheet = models.Worksheet(
+        title=title,
+        operation=operation,
+        digits=digits,
+        problems=extracted_text,
+        is_pdf=True
+    )
+    db.add(worksheet)
+    db.commit()
+    return RedirectResponse(url="/teacher", status_code=303)
+
+@app.post("/create-flash")
+async def create_flash(
+    title: str = Form(...),
+    operation: str = Form(...),
+    digits: str = Form(...),
+    speed: int = Form(...),
+    sequences: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    worksheet = models.Worksheet(
+        title=title,
+        operation=operation,
+        digits=digits,
+        problems=sequences,
+        is_flash=True,
+        flash_speed=speed
+    )
+    db.add(worksheet)
+    db.commit()
+    return RedirectResponse(url="/teacher", status_code=303)
+
+
+# ==========================================
+# STUDENT PORTAL & SUBMISSION ROUTES
+# ==========================================
 @app.get("/student", response_class=HTMLResponse)
-def student_portal(request: Request, db: Session = Depends(get_db)):
+async def student_portal(request: Request, db: Session = Depends(get_db)):
     worksheets = db.query(models.Worksheet).all()
     return templates.TemplateResponse(
-        "student.html",
+        "student.html", 
         {"request": request, "worksheets": worksheets}
     )
 
-
-@app.get("/worksheet/{worksheet_id}", response_class=HTMLResponse)
-def get_worksheet(worksheet_id: int, request: Request, db: Session = Depends(get_db)):
-    worksheet = db.query(models.Worksheet).filter(models.Worksheet.id == worksheet_id).first()
-    if not worksheet:
-        raise HTTPException(status_code=404, detail="Worksheet not found")
-    
-    problems = db.query(models.Problem).filter(models.Problem.worksheet_id == worksheet_id).all()
-    return templates.TemplateResponse(
-        "worksheet.html",
-        {"request": request, "worksheet": worksheet, "problems": problems}
-    )
-
-
-@app.post("/submit/{worksheet_id}", response_class=HTMLResponse)
+@app.post("/submit")
 async def submit_worksheet(
-    worksheet_id: int,
-    request: Request,
     student_name: str = Form(...),
+    worksheet_id: int = Form(...),
+    score: int = Form(...),
+    total: int = Form(...),
     db: Session = Depends(get_db)
 ):
-    form_data = await request.form()
-    problems = db.query(models.Problem).filter(models.Problem.worksheet_id == worksheet_id).all()
-    
-    score = 0
-    total = len(problems)
-    
-    for problem in problems:
-        user_answer = form_data.get(f"problem_{problem.id}")
-        if user_answer and str(user_answer).strip() == str(problem.answer).strip():
-            score += 1
-            
     submission = models.Submission(
         student_name=student_name,
         worksheet_id=worksheet_id,
@@ -81,8 +141,4 @@ async def submit_worksheet(
     db.add(submission)
     db.commit()
     db.refresh(submission)
-    
-    return templates.TemplateResponse(
-        "results.html",
-        {"request": request, "submission": submission}
-    )
+    return JSONResponse({"status": "success", "submission_id": submission.id}) 
