@@ -9,11 +9,12 @@ import pypdf
 import database
 import models
 
-# Initialize FastAPI App
 app = FastAPI(title="Soroban Grader")
 
-# Database Setup
-models.Base.metadata.create_all(bind=database.engine)
+# Ensure database tables are created on startup
+@app.on_event("startup")
+def startup():
+    models.Base.metadata.create_all(bind=database.engine)
 
 # Static files and Template setup
 if os.path.exists("static"):
@@ -34,12 +35,11 @@ def get_db():
 # ==========================================
 @app.get("/")
 async def root_redirect():
-    """Redirects base traffic directly to the Student portal by default."""
     return RedirectResponse(url="/student")
 
 
 # ==========================================
-# TEACHER PORTAL & CREATION ROUTES (RESTRICTED)
+# TEACHER PORTAL & CREATION ROUTES
 # ==========================================
 @app.get("/teacher", response_class=HTMLResponse)
 async def teacher_dashboard(request: Request, db: Session = Depends(get_db)):
@@ -115,14 +115,12 @@ async def create_flash(
 
 
 # ==========================================
-# STUDENT PORTAL & SECURE SUBMISSION ROUTES
+# STUDENT PORTAL & SUBMISSION ROUTES
 # ==========================================
 @app.get("/student", response_class=HTMLResponse)
 async def student_portal(request: Request, db: Session = Depends(get_db)):
-    """Serves the student UI without exposing answer keys or teacher features."""
     worksheets = db.query(models.Worksheet).all()
     
-    # Strip problem solutions before sending worksheet structures to students
     sanitized_worksheets = []
     for ws in worksheets:
         sanitized_worksheets.append({
@@ -147,7 +145,6 @@ async def submit_worksheet(
     total: int = Form(...),
     db: Session = Depends(get_db)
 ):
-    """Processes student submission securely on backend."""
     submission = models.Submission(
         student_name=student_name,
         worksheet_id=worksheet_id,
