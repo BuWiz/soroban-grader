@@ -8,7 +8,6 @@ import pypdf
 
 import database
 import models
-import emailer
 
 # Initialize FastAPI App
 app = FastAPI(title="Soroban Grader")
@@ -17,7 +16,9 @@ app = FastAPI(title="Soroban Grader")
 models.Base.metadata.create_all(bind=database.engine)
 
 # Static files and Template setup
-app.mount("/static", StaticFiles(directory="static"), name="static")
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
 templates = Jinja2Templates(directory="templates")
 
 def get_db():
@@ -29,16 +30,16 @@ def get_db():
 
 
 # ==========================================
-# ROOT REDIRECT (PERMANENT 404 FIX)
+# ROOT REDIRECT
 # ==========================================
 @app.get("/")
 async def root_redirect():
-    """Redirects the base URL straight to the teacher dashboard."""
-    return RedirectResponse(url="/teacher")
+    """Redirects base traffic directly to the Student portal by default."""
+    return RedirectResponse(url="/student")
 
 
 # ==========================================
-# TEACHER DASHBOARD & CREATION ROUTES
+# TEACHER PORTAL & CREATION ROUTES (RESTRICTED)
 # ==========================================
 @app.get("/teacher", response_class=HTMLResponse)
 async def teacher_dashboard(request: Request, db: Session = Depends(get_db)):
@@ -114,14 +115,28 @@ async def create_flash(
 
 
 # ==========================================
-# STUDENT PORTAL & SUBMISSION ROUTES
+# STUDENT PORTAL & SECURE SUBMISSION ROUTES
 # ==========================================
 @app.get("/student", response_class=HTMLResponse)
 async def student_portal(request: Request, db: Session = Depends(get_db)):
+    """Serves the student UI without exposing answer keys or teacher features."""
     worksheets = db.query(models.Worksheet).all()
+    
+    # Strip problem solutions before sending worksheet structures to students
+    sanitized_worksheets = []
+    for ws in worksheets:
+        sanitized_worksheets.append({
+            "id": ws.id,
+            "title": ws.title,
+            "operation": ws.operation,
+            "digits": ws.digits,
+            "is_flash": ws.is_flash,
+            "flash_speed": ws.flash_speed
+        })
+        
     return templates.TemplateResponse(
         "student.html", 
-        {"request": request, "worksheets": worksheets}
+        {"request": request, "worksheets": sanitized_worksheets}
     )
 
 @app.post("/submit")
@@ -132,6 +147,7 @@ async def submit_worksheet(
     total: int = Form(...),
     db: Session = Depends(get_db)
 ):
+    """Processes student submission securely on backend."""
     submission = models.Submission(
         student_name=student_name,
         worksheet_id=worksheet_id,
@@ -141,4 +157,4 @@ async def submit_worksheet(
     db.add(submission)
     db.commit()
     db.refresh(submission)
-    return JSONResponse({"status": "success", "submission_id": submission.id}) 
+    return JSONResponse({"status": "success", "submission_id": submission.id})
