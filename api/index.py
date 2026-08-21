@@ -7,6 +7,3 @@ if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 from main import app
-
-# Export app as the Vercel handler
-handler = app
