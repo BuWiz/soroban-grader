@@ -1,17 +1,13 @@
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+import sqlite3
 
-# Use /tmp directory when running on Vercel's read-only serverless environment
+# Check if running in Vercel serverless environment
 if os.environ.get("VERCEL"):
-    SQLALCHEMY_DATABASE_URL = "sqlite:////tmp/soroban.db"
+    DB_PATH = "/tmp/grader.db"
 else:
-    SQLALCHEMY_DATABASE_URL = "sqlite:///./soroban.db"
+    DB_PATH = "grader.db"
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
