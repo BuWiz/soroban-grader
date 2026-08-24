@@ -44,7 +44,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Initialize schema on startup
+# Initialize database schema on startup
 init_db()
 
 # ----------------- ROUTES ----------------- #
@@ -112,16 +112,15 @@ def publish_worksheet(worksheet_id):
 @app.route('/worksheet/<int:worksheet_id>')
 def worksheet(worksheet_id=None):
     conn = get_db()
+    sheet = None
     if worksheet_id:
         sheet = conn.execute('SELECT * FROM worksheets WHERE id = ?', (worksheet_id,)).fetchone()
-    else:
+    
+    if not sheet:
         sheet = conn.execute("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC LIMIT 1").fetchone()
     conn.close()
 
-    if not sheet:
-        return "<h2>Worksheet not found.</h2><p><a href='/'>Return to Home</a></p>", 404
-
-    return render_template('worksheet.html', worksheet=sheet)
+    return render_template('worksheet.html', worksheet=sheet or {})
 
 @app.route('/flash_worksheet')
 @app.route('/flash_worksheet/<int:worksheet_id>')
@@ -130,16 +129,23 @@ def flash_worksheet(worksheet_id=None):
         worksheet_id = request.args.get('id', type=int)
 
     conn = get_db()
+    sheet = None
+    
+    # 1. Try fetching by explicit ID
     if worksheet_id:
         sheet = conn.execute('SELECT * FROM worksheets WHERE id = ?', (worksheet_id,)).fetchone()
-    else:
+    
+    # 2. Fallback: fetch latest flash assignment
+    if not sheet:
+        sheet = conn.execute("SELECT * FROM worksheets WHERE assignment_type = 'flash' ORDER BY created_at DESC LIMIT 1").fetchone()
+        
+    # 3. Final fallback: fetch ANY latest assigned worksheet
+    if not sheet:
         sheet = conn.execute("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC LIMIT 1").fetchone()
+        
     conn.close()
 
-    if not sheet:
-        return "<h2>Flash Worksheet not found.</h2><p><a href='/'>Return to Home</a></p>", 404
-
-    return render_template('flash_worksheet.html', worksheet=sheet)
+    return render_template('flash_worksheet.html', worksheet=sheet or {})
 
 @app.route('/submit_grade', methods=['POST'])
 def submit_grade():
