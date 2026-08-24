@@ -1,25 +1,22 @@
 import os
 import sqlite3
-from flask import Flask
+from flask import Flask, render_template, request, jsonify
 
-base_dir = os.path.abspath(os.path.dirname(__file__))
-template_dir = os.path.join(base_dir, 'templates')
+app = Flask(__name__)
 
-app = Flask(__name__, template_folder=template_dir)
+# Use /tmp directory on Vercel to avoid read-only file system errors
+DB_PATH = '/tmp/grader.db' if os.environ.get('VERCEL') else 'grader.db'
 
-# Set DB path to Vercel's writable /tmp directory in production
-if os.environ.get('VERCEL'):
-    DB_PATH = '/tmp/soroban.db'
-else:
-    DB_PATH = os.path.join(base_dir, 'soroban.db')
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def init_db():
-    """Automatically create tables in /tmp if they don't exist yet"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db()
     cursor = conn.cursor()
-    # Replace these table creation queries with your actual schema if different
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS submissions (
+        CREATE TABLE IF NOT EXISTS grades (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             student_name TEXT,
             score TEXT,
@@ -29,5 +26,16 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Always ensure database schema exists before handling requests
+# Initialize DB safely on app startup
 init_db()
+
+@app.route('/')
+def home():
+    # If using index.html in a templates folder:
+    try:
+        return render_template('index.html')
+    except Exception:
+        return "<h1>Soroban Grader Server is Live!</h1>"
+
+if __name__ == '__main__':
+    app.run(debug=True)
