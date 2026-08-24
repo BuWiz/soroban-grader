@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 
 app = Flask(__name__)
 
+# Use writeable /tmp directory on Vercel to prevent file permission crashes
 DB_PATH = '/tmp/grader.db' if os.environ.get('VERCEL') else 'grader.db'
 
 def get_db():
@@ -14,6 +15,8 @@ def get_db():
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
+    
+    # Worksheets table supporting drafts, active assignments, and flash settings
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS worksheets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,6 +29,8 @@ def init_db():
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    
+    # Grades table for storing completed auto-graded student submissions
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS grades (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,19 +38,20 @@ def init_db():
             worksheet_id INTEGER,
             worksheet_title TEXT,
             score TEXT NOT NULL,
-            total_questions INTEGER,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     conn.commit()
     conn.close()
 
+# Initialize schema on startup
 init_db()
 
 # ----------------- ROUTES ----------------- #
 
 @app.route('/')
 def home():
+    # Render student portal showing only active assigned worksheets
     conn = get_db()
     worksheets = conn.execute("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC").fetchall()
     conn.close()
@@ -59,6 +65,7 @@ def teacher():
         assignment_type = request.form.get('assignment_type', 'standard')
         flash_speed = request.form.get('flash_speed', '')
         
+        # Determine draft vs immediate assign status
         action = request.form.get('action')
         status = 'assigned' if action == 'publish' else 'draft'
 
@@ -82,6 +89,7 @@ def teacher():
         
         return redirect(url_for('teacher'))
 
+    # GET: Load drafts, active assignments, and student grades
     conn = get_db()
     drafts = conn.execute("SELECT * FROM worksheets WHERE status = 'draft' ORDER BY created_at DESC").fetchall()
     assigned = conn.execute("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC").fetchall()
@@ -90,34 +98,15 @@ def teacher():
     
     return render_template('teacher.html', drafts=drafts, assigned=assigned, grades=completed_grades)
 
-# Route to assign draft to students
 @app.route('/publish/<int:worksheet_id>', methods=['POST'])
 def publish_worksheet(worksheet_id):
+    # Route to convert saved draft into an assigned student worksheet
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("UPDATE worksheets SET status = 'assigned' WHERE id = ?", (worksheet_id,))
     conn.commit()
     conn.close()
     return redirect(url_for('teacher'))
-
-# Route to auto-submit student answers & auto-grade
-@app.route('/submit_grade', methods=['POST'])
-def submit_grade():
-    student_name = request.form.get('student_name', 'Anonymous Student')
-    worksheet_id = request.form.get('worksheet_id')
-    worksheet_title = request.form.get('worksheet_title', 'Soroban Worksheet')
-    score = request.form.get('score')  # Auto-calculated score string (e.g., "85%" or "8/10")
-    
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO grades (student_name, worksheet_id, worksheet_title, score)
-        VALUES (?, ?, ?, ?)
-    ''', (student_name, worksheet_id, worksheet_title, score))
-    conn.commit()
-    conn.close()
-    
-    return jsonify({"status": "success", "message": "Grade recorded automatically!"})
 
 @app.route('/worksheet')
 @app.route('/worksheet/<int:worksheet_id>')
@@ -128,7 +117,47 @@ def worksheet(worksheet_id=None):
     else:
         sheet = conn.execute("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC LIMIT 1").fetchone()
     conn.close()
+
+    if not sheet:
+        return "<h2>Worksheet not found.</h2><p><a href='/'>Return to Home</a></p>", 404
+
     return render_template('worksheet.html', worksheet=sheet)
+
+@app.route('/flash_worksheet')
+@app.route('/flash_worksheet/<int:worksheet_id>')
+def flash_worksheet(worksheet_id=None):
+    if worksheet_id is None:
+        worksheet_id = request.args.get('id', type=int)
+
+    conn = get_db()
+    if worksheet_id:
+        sheet = conn.execute('SELECT * FROM worksheets WHERE id = ?', (worksheet_id,)).fetchone()
+    else:
+        sheet = conn.execute("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC LIMIT 1").fetchone()
+    conn.close()
+
+    if not sheet:
+        return "<h2>Flash Worksheet not found.</h2><p><a href='/'>Return to Home</a></p>", 404
+
+    return render_template('flash_worksheet.html', worksheet=sheet)
+
+@app.route('/submit_grade', methods=['POST'])
+def submit_grade():
+    student_name = request.form.get('student_name', 'Anonymous Student')
+    worksheet_id = request.form.get('worksheet_id')
+    worksheet_title = request.form.get('worksheet_title', 'Soroban Worksheet')
+    score = request.form.get('score')
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO grades (student_name, worksheet_id, worksheet_title, score)
+        VALUES (?, ?, ?, ?)
+    ''', (student_name, worksheet_id, worksheet_title, score))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"status": "success", "message": "Grade recorded successfully!"})
 
 @app.route('/results')
 def results():
