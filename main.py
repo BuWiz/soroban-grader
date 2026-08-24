@@ -16,7 +16,7 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
     
-    # Create tables for worksheets and grades with assignment types support
+    # Worksheets table with draft/assigned status column
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS worksheets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,6 +25,7 @@ def init_db():
             filename TEXT,
             assignment_type TEXT DEFAULT 'standard',
             flash_speed TEXT,
+            status TEXT DEFAULT 'draft',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -41,15 +42,15 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Initialize database schema on startup
 init_db()
 
 # ----------------- ROUTES ----------------- #
 
 @app.route('/')
 def home():
+    # Only send ASSIGNED worksheets to the student portal
     conn = get_db()
-    worksheets = conn.execute('SELECT * FROM worksheets ORDER BY created_at DESC').fetchall()
+    worksheets = conn.execute("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC").fetchall()
     conn.close()
     return render_template('student.html', worksheets=worksheets)
 
@@ -61,35 +62,46 @@ def teacher():
         assignment_type = request.form.get('assignment_type', 'standard')
         flash_speed = request.form.get('flash_speed', '')
         
-        # Handle file upload if present
+        # Check which button was clicked: "Save as Draft" or "Assign Now"
+        action = request.form.get('action')
+        status = 'assigned' if action == 'publish' else 'draft'
+
         filename = None
         if 'worksheet_file' in request.files:
             file = request.files['worksheet_file']
             if file and file.filename != '':
                 filename = file.filename
-                # Save to writeable /tmp on Vercel
                 upload_dir = '/tmp/uploads' if os.environ.get('VERCEL') else 'uploads'
                 os.makedirs(upload_dir, exist_ok=True)
                 file.save(os.path.join(upload_dir, filename))
         
-        # Save worksheet record to DB
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO worksheets (title, content, filename, assignment_type, flash_speed) 
-            VALUES (?, ?, ?, ?, ?)
-        ''', (title, content, filename, assignment_type, flash_speed))
+            INSERT INTO worksheets (title, content, filename, assignment_type, flash_speed, status) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (title, content, filename, assignment_type, flash_speed, status))
         conn.commit()
         conn.close()
         
         return redirect(url_for('teacher'))
 
-    # GET request: load teacher dashboard and all active worksheets
+    # Load both drafts and published worksheets for the teacher
     conn = get_db()
-    worksheets = conn.execute('SELECT * FROM worksheets ORDER BY created_at DESC').fetchall()
+    drafts = conn.execute("SELECT * FROM worksheets WHERE status = 'draft' ORDER BY created_at DESC").fetchall()
+    assigned = conn.execute("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC").fetchall()
     conn.close()
     
-    return render_template('teacher.html', worksheets=worksheets)
+    return render_template('teacher.html', drafts=drafts, assigned=assigned)
+
+@app.route('/publish/<int:worksheet_id>', methods=['POST'])
+def publish_worksheet(worksheet_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE worksheets SET status = 'assigned' WHERE id = ?", (worksheet_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('teacher'))
 
 @app.route('/worksheet')
 @app.route('/worksheet/<int:worksheet_id>')
@@ -98,9 +110,8 @@ def worksheet(worksheet_id=None):
     if worksheet_id:
         sheet = conn.execute('SELECT * FROM worksheets WHERE id = ?', (worksheet_id,)).fetchone()
     else:
-        sheet = conn.execute('SELECT * FROM worksheets ORDER BY created_at DESC LIMIT 1').fetchone()
+        sheet = conn.execute("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC LIMIT 1").fetchone()
     conn.close()
-    
     return render_template('worksheet.html', worksheet=sheet)
 
 @app.route('/results')
@@ -108,7 +119,6 @@ def results():
     conn = get_db()
     all_grades = conn.execute('SELECT * FROM grades ORDER BY timestamp DESC').fetchall()
     conn.close()
-    
     return render_template('results.html', grades=all_grades)
 
 @app.route('/flash_worksheet')

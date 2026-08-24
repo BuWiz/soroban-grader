@@ -5,69 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Portal - Soroban Grader</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 850px;
-            margin: 30px auto;
-            padding: 20px;
-            background-color: #f4f6f9;
-        }
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; padding: 20px; background-color: #f4f6f9; }
         h1, h2 { color: #333; }
-        .card {
-            background: #fff;
-            padding: 20px;
-            margin-bottom: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+        .card { background: #fff; padding: 20px; margin-bottom: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
         input[type="text"], select, textarea, input[type="file"], input[type="number"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
+            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
         }
         textarea { height: 90px; resize: vertical; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-        }
-        button:hover { background-color: #0056b3; }
+        .btn-group { display: flex; gap: 10px; }
+        .btn-primary { background-color: #007bff; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; flex: 1; font-size: 15px; }
+        .btn-secondary { background-color: #6c757d; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; flex: 1; font-size: 15px; }
+        .btn-assign { background-color: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .btn-assign:hover { background-color: #218838; }
         ul { list-style-type: none; padding: 0; }
-        li {
-            background: #e9ecef;
-            margin-bottom: 10px;
-            padding: 12px;
-            border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .badge {
-            background: #007bff;
-            color: #fff;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            text-transform: uppercase;
-        }
+        li { background: #e9ecef; margin-bottom: 10px; padding: 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .badge { background: #17a2b8; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; text-transform: uppercase; margin-left: 8px; }
     </style>
 </head>
 <body>
 
     <h1>Teacher Dashboard</h1>
 
+    <!-- Create / Save Worksheet Form -->
     <div class="card">
-        <h2>Assign New Soroban Worksheet</h2>
+        <h2>Create Soroban Worksheet</h2>
         <form action="/teacher" method="POST" enctype="multipart/form-data">
             
             <div class="form-group">
@@ -78,14 +44,14 @@
             <div class="grid-2">
                 <div class="form-group">
                     <label for="assignment_type">Assignment Type:</label>
-                    <select id="assignment_type" name="assignment_type" onchange="toggleFields()">
+                    <select id="assignment_type" name="assignment_type">
                         <option value="standard">Standard Abacus Worksheet</option>
                         <option value="flash">Flash Anzan (Mental Math)</option>
                         <option value="file">File Upload (PDF / Image)</option>
                     </select>
                 </div>
 
-                <div class="form-group" id="speed_group">
+                <div class="form-group">
                     <label for="flash_speed">Flash Speed (Seconds per Digits):</label>
                     <input type="number" step="0.1" id="flash_speed" name="flash_speed" placeholder="1.5">
                 </div>
@@ -96,37 +62,62 @@
                 <textarea id="content" name="content" placeholder="Enter problem sets, digit counts, or instructions..."></textarea>
             </div>
 
-            <div class="form-group" id="file_group">
-                <label for="worksheet_file">Upload Worksheet File:</label>
+            <div class="form-group">
+                <label for="worksheet_file">Upload Worksheet File (Optional):</label>
                 <input type="file" id="worksheet_file" name="worksheet_file">
             </div>
 
-            <button type="submit">Publish & Assign Worksheet</button>
+            <div class="btn-group">
+                <button type="submit" name="action" value="draft" class="btn-secondary">💾 Save as Draft</button>
+                <button type="submit" name="action" value="publish" class="btn-primary">🚀 Assign Now</button>
+            </div>
         </form>
     </div>
 
+    <!-- Saved Drafts Library -->
     <div class="card">
-        <h2>Assigned Worksheets</h2>
-        {% if worksheets %}
+        <h2>Saved Drafts (Unassigned)</h2>
+        {% if drafts %}
             <ul>
-                {% for sheet in worksheets %}
+                {% for sheet in drafts %}
                     <li>
                         <div>
                             <strong>{{ sheet.title }}</strong>
+                            <span class="badge">{{ sheet.assignment_type or 'Standard' }}</span>
                             <br><small>Created: {{ sheet.created_at }}</small>
                         </div>
+                        <form action="/publish/{{ sheet.id }}" method="POST" style="margin: 0;">
+                            <button type="submit" class="btn-assign">Assign to Students →</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No draft worksheets saved.</p>
+        {% endif %}
+    </div>
+
+    <!-- Currently Active Assignments -->
+    <div class="card">
+        <h2>Active Student Assignments</h2>
+        {% if assigned %}
+            <ul>
+                {% for sheet in assigned %}
+                    <li>
                         <div>
-                            <span class="badge">{{ sheet.assignment_type or 'Standard' }}</span>
+                            <strong>{{ sheet.title }}</strong>
+                            <span class="badge" style="background-color: #28a745;">ACTIVE</span>
+                            <br><small>Assigned: {{ sheet.created_at }}</small>
                         </div>
                     </li>
                 {% endfor %}
             </ul>
         {% else %}
-            <p>No worksheets assigned yet.</p>
+            <p>No active assignments published to students yet.</p>
         {% endif %}
     </div>
 
-    <p><a href="/">← Back to Student Portal</a> | <a href="/results">View Student Results →</a></p>
+    <p><a href="/">← View Student Portal</a> | <a href="/results">View Student Results →</a></p>
 
 </body>
 </html> 
