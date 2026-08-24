@@ -4,7 +4,6 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 
 app = Flask(__name__)
 
-# Use writeable /tmp directory on Vercel to prevent file permission crashes
 DB_PATH = '/tmp/grader.db' if os.environ.get('VERCEL') else 'grader.db'
 
 def get_db():
@@ -15,8 +14,6 @@ def get_db():
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
-    
-    # Worksheets table with draft/assigned status column
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS worksheets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,13 +26,14 @@ def init_db():
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS grades (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            student_name TEXT,
+            student_name TEXT NOT NULL,
             worksheet_id INTEGER,
-            score TEXT,
+            worksheet_title TEXT,
+            score TEXT NOT NULL,
+            total_questions INTEGER,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -48,7 +46,6 @@ init_db()
 
 @app.route('/')
 def home():
-    # Only send ASSIGNED worksheets to the student portal
     conn = get_db()
     worksheets = conn.execute("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC").fetchall()
     conn.close()
@@ -62,7 +59,6 @@ def teacher():
         assignment_type = request.form.get('assignment_type', 'standard')
         flash_speed = request.form.get('flash_speed', '')
         
-        # Check which button was clicked: "Save as Draft" or "Assign Now"
         action = request.form.get('action')
         status = 'assigned' if action == 'publish' else 'draft'
 
@@ -86,14 +82,15 @@ def teacher():
         
         return redirect(url_for('teacher'))
 
-    # Load both drafts and published worksheets for the teacher
     conn = get_db()
     drafts = conn.execute("SELECT * FROM worksheets WHERE status = 'draft' ORDER BY created_at DESC").fetchall()
     assigned = conn.execute("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC").fetchall()
+    completed_grades = conn.execute("SELECT * FROM grades ORDER BY timestamp DESC").fetchall()
     conn.close()
     
-    return render_template('teacher.html', drafts=drafts, assigned=assigned)
+    return render_template('teacher.html', drafts=drafts, assigned=assigned, grades=completed_grades)
 
+# Route to assign draft to students
 @app.route('/publish/<int:worksheet_id>', methods=['POST'])
 def publish_worksheet(worksheet_id):
     conn = get_db()
@@ -102,6 +99,25 @@ def publish_worksheet(worksheet_id):
     conn.commit()
     conn.close()
     return redirect(url_for('teacher'))
+
+# Route to auto-submit student answers & auto-grade
+@app.route('/submit_grade', methods=['POST'])
+def submit_grade():
+    student_name = request.form.get('student_name', 'Anonymous Student')
+    worksheet_id = request.form.get('worksheet_id')
+    worksheet_title = request.form.get('worksheet_title', 'Soroban Worksheet')
+    score = request.form.get('score')  # Auto-calculated score string (e.g., "85%" or "8/10")
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO grades (student_name, worksheet_id, worksheet_title, score)
+        VALUES (?, ?, ?, ?)
+    ''', (student_name, worksheet_id, worksheet_title, score))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"status": "success", "message": "Grade recorded automatically!"})
 
 @app.route('/worksheet')
 @app.route('/worksheet/<int:worksheet_id>')
@@ -120,10 +136,6 @@ def results():
     all_grades = conn.execute('SELECT * FROM grades ORDER BY timestamp DESC').fetchall()
     conn.close()
     return render_template('results.html', grades=all_grades)
-
-@app.route('/flash_worksheet')
-def flash_worksheet():
-    return render_template('flash_worksheet.html')
 
 if __name__ == '__main__':
     app.run(debug=True) 
