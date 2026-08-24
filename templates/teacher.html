@@ -1,277 +1,119 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Teacher Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Portal - Soroban Grader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #f4f6f9;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .card {
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], textarea, input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background: #e9ecef;
+            margin-bottom: 10px;
+            padding: 12px;
+            border-radius: 4px;
+        }
+    </style>
 </head>
-<body class="bg-slate-100 p-8">
-    <div class="max-w-6xl mx-auto space-y-8">
-        
-        <div class="flex justify-between items-center bg-white p-6 rounded-xl shadow">
-            <h1 class="text-3xl font-bold text-slate-800">Soroban Teacher Dashboard</h1>
+<body>
+
+    <h1>Teacher Dashboard</h1>
+
+    <!-- Create/Upload Worksheet Form -->
+    <div class="card">
+        <h2>Assign New Worksheet</h2>
+        <form action="/teacher" method="POST" enctype="multipart/form-data">
             
-            <!-- Email Alert Settings Bar -->
-            <form action="/teacher/save-email" method="POST" class="flex gap-2 items-center">
-                <span class="text-xs font-bold text-slate-500">Alert Email:</span>
-                <input type="email" name="email" value="{{ teacher_email }}" required placeholder="rlmorgan512@gmail.com" class="border p-2 rounded text-sm w-56">
-                <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded">Save Email</button>
-            </form>
-        </div>
-
-        <!-- CREATION CARDS GRID -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Standard Worksheet Creator -->
-            <div class="bg-white p-6 rounded-xl shadow space-y-4">
-                <h2 class="text-lg font-bold text-slate-700 border-b pb-2">Create Standard</h2>
-                <form action="/teacher/create" method="POST" class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Title</label>
-                        <input type="text" name="title" required placeholder="Add & Sub Drill 1" class="w-full border p-2 rounded text-sm">
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Operation</label>
-                            <select name="category" class="w-full border p-2 rounded text-sm bg-white">
-                                <option value="Addition & Subtraction">Addition & Subtraction</option>
-                                <option value="Addition">Addition</option>
-                                <option value="Subtraction">Subtraction</option>
-                                <option value="Multiplication">Multiplication</option>
-                                <option value="Division">Division</option>
-                                <option value="Mixed Operations">Full Mixed (All 4)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Digits</label>
-                            <select name="digits" class="w-full border p-2 rounded text-sm bg-white">
-                                <option value="1">1-Digit</option>
-                                <option value="2">2-Digit</option>
-                                <option value="3">3-Digit</option>
-                                <option value="4">4-Digit</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Problems (1 per line)</label>
-                        <textarea name="raw_problems" rows="3" placeholder="12 + 15 = 27&#10;25 - 8 = 17" class="w-full border p-2 rounded font-mono text-sm"></textarea>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-sm">Save Standard</button>
-                </form>
+            <div class="form-group">
+                <label for="title">Worksheet Title:</label>
+                <input type="text" id="title" name="title" placeholder="e.g., Soroban Addition Level 1" required>
             </div>
 
-            <!-- Upload PDF Worksheet -->
-            <div class="bg-white p-6 rounded-xl shadow space-y-4">
-                <h2 class="text-lg font-bold text-slate-700 border-b pb-2">Upload PDF Worksheet</h2>
-                <form action="/teacher/upload-pdf" method="POST" enctype="multipart/form-data" class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Worksheet Title</label>
-                        <input type="text" name="title" placeholder="PDF Drill Title" class="w-full border p-2 rounded text-sm">
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Operation</label>
-                            <select name="category" class="w-full border p-2 rounded text-sm bg-white">
-                                <option value="Addition & Subtraction">Addition & Subtraction</option>
-                                <option value="Addition">Addition</option>
-                                <option value="Subtraction">Subtraction</option>
-                                <option value="Multiplication">Multiplication</option>
-                                <option value="Division">Division</option>
-                                <option value="Mixed Operations">Full Mixed (All 4)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Digits</label>
-                            <select name="digits" class="w-full border p-2 rounded text-sm bg-white">
-                                <option value="1">1-Digit</option>
-                                <option value="2">2-Digit</option>
-                                <option value="3">3-Digit</option>
-                                <option value="4">4-Digit</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- PDF Flash Toggle -->
-                    <div class="p-3 bg-slate-50 rounded border space-y-2">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" name="is_flash" value="true" class="w-4 h-4 text-purple-600">
-                            <span class="text-xs font-bold text-purple-800">Is Flash Anzan Drill?</span>
-                        </label>
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-500 mb-1">Flash Speed (ms)</label>
-                            <input type="number" name="flash_speed_ms" value="1500" class="w-full border p-1 rounded text-xs">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Select PDF File</label>
-                        <input type="file" name="pdf_file" accept=".pdf" required class="w-full border p-1 rounded text-xs">
-                    </div>
-                    <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded text-sm">Import PDF to Library</button>
-                </form>
+            <div class="form-group">
+                <label for="content">Worksheet Instructions or Problems:</label>
+                <textarea id="content" name="content" placeholder="Enter instructions, questions, or problem sets here..."></textarea>
             </div>
 
-            <!-- Flash Anzan Creator -->
-            <div class="bg-white p-6 rounded-xl shadow space-y-4">
-                <h2 class="text-lg font-bold text-slate-700 border-b pb-2">Flash Anzan Drill</h2>
-                <form action="/teacher/create-flash" method="POST" class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Title</label>
-                        <input type="text" name="title" required placeholder="Flash Add & Sub" class="w-full border p-2 rounded text-sm">
-                    </div>
-                    <div class="grid grid-cols-3 gap-1">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Op</label>
-                            <select name="category" class="w-full border p-1 rounded text-xs bg-white">
-                                <option value="Addition & Subtraction">Add & Sub</option>
-                                <option value="Addition">Addition</option>
-                                <option value="Subtraction">Subtraction</option>
-                                <option value="Mixed Operations">Mixed</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Digits</label>
-                            <select name="digits" class="w-full border p-1 rounded text-xs bg-white">
-                                <option value="1">1D</option>
-                                <option value="2">2D</option>
-                                <option value="3">3D</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Speed</label>
-                            <input type="number" name="flash_speed_ms" value="1500" required class="w-full border p-1 rounded text-xs">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Sequences</label>
-                        <textarea name="raw_sequences" rows="2" placeholder="5, -3, 8" class="w-full border p-2 rounded font-mono text-sm"></textarea>
-                    </div>
-                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded text-sm">Save Flash</button>
-                </form>
+            <div class="form-group">
+                <label for="worksheet_file">Optional File Attachment (PDF / Image / Doc):</label>
+                <input type="file" id="worksheet_file" name="worksheet_file">
             </div>
-        </div>
 
-        <!-- CATEGORIZED WORKSHEET LIBRARY -->
-        <div class="bg-white p-6 rounded-xl shadow space-y-6">
-            <h2 class="text-xl font-bold text-slate-800 border-b pb-2">Categorized Worksheet Library</h2>
-
-            {% set categories = ["Addition & Subtraction", "Addition", "Subtraction", "Multiplication", "Division", "Mixed Operations"] %}
-
-            {% for cat in categories %}
-            <div class="border rounded-xl p-4 bg-slate-50 space-y-3">
-                <div class="flex justify-between items-center">
-                    <h3 class="font-extrabold text-indigo-900 text-base uppercase tracking-wide">📂 {{ cat }}</h3>
-                </div>
-
-                <div class="overflow-x-auto bg-white rounded-lg border">
-                    <table class="w-full text-left text-sm border-collapse">
-                        <thead>
-                            <tr class="bg-slate-100 border-b text-slate-600 text-xs uppercase">
-                                <th class="p-2.5">Title</th>
-                                <th class="p-2.5">Complexity</th>
-                                <th class="p-2.5">Format</th>
-                                <th class="p-2.5">Status</th>
-                                <th class="p-2.5">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y text-xs">
-                            {% set ns = namespace(found=false) %}
-                            {% for ws in worksheets %}
-                                {% if ws.category == cat %}
-                                {% set ns.found = true %}
-                                <tr>
-                                    <td class="p-2.5 font-bold text-slate-800">{{ ws.title }}</td>
-                                    <td class="p-2.5">
-                                        <span class="bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded">{{ ws.digits }}-Digit</span>
-                                    </td>
-                                    <td class="p-2.5 font-medium text-slate-600">
-                                        {% if ws.is_flash %}⚡ Flash Anzan ({{ ws.flash_speed_ms }}ms){% else %}📝 Standard Sheet{% endif %}
-                                    </td>
-                                    <td class="p-2.5">
-                                        {% if ws.is_assigned %}
-                                        <span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Active on Portal</span>
-                                        {% else %}
-                                        <span class="bg-slate-100 text-slate-500 font-bold px-2 py-0.5 rounded">Stored in Library</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="p-2.5 flex gap-2">
-                                        <form action="/teacher/assign/{{ ws.id }}" method="POST">
-                                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1 rounded shadow">
-                                                📌 Assign
-                                            </button>
-                                        </form>
-                                        {% if ws.is_assigned %}
-                                        <form action="/teacher/unassign/{{ ws.id }}" method="POST">
-                                            <button type="submit" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-3 py-1 rounded">
-                                                Unassign
-                                            </button>
-                                        </form>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endif %}
-                            {% endfor %}
-
-                            {% if not ns.found %}
-                            <tr>
-                                <td colspan="5" class="p-3 text-slate-400 italic text-center">No {{ cat }} worksheets created yet.</td>
-                            </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <!-- COMPLETED ASSIGNMENTS LOG -->
-        <div class="bg-white p-6 rounded-xl shadow space-y-4">
-            <h2 class="text-xl font-bold text-slate-700 border-b pb-2">Completed Assignments Log</h2>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 border-b">
-                            <th class="p-3">Student Name</th>
-                            <th class="p-3">Worksheet</th>
-                            <th class="p-3">Category</th>
-                            <th class="p-3">Score</th>
-                            <th class="p-3">Completed At</th>
-                            <th class="p-3">Remedial Action</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y">
-                        {% for log in submission_logs %}
-                        <tr>
-                            <td class="p-3 font-bold text-slate-800">{{ log.sub.student_name }}</td>
-                            <td class="p-3 text-slate-700 font-medium">{{ log.worksheet_title }}</td>
-                            <td class="p-3">
-                                <span class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded">{{ log.category }}</span>
-                            </td>
-                            <td class="p-3">
-                                <span class="font-bold text-xs px-2 py-1 rounded {% if log.sub.score >= 80 %}bg-emerald-100 text-emerald-700{% else %}bg-red-100 text-red-700{% endif %}">
-                                    {{ "%.1f"|format(log.sub.score) }}%
-                                </span>
-                            </td>
-                            <td class="p-3 text-xs text-slate-500 font-mono">{{ log.formatted_date }}</td>
-                            <td class="p-3">
-                                {% if log.sub.incorrect_problems %}
-                                <form action="/teacher/generate-remedial/{{ log.sub.id }}" method="POST">
-                                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded shadow">
-                                        ⚡ Generate Remedial Practice
-                                    </button>
-                                </form>
-                                {% else %}
-                                <span class="text-xs text-emerald-600 font-bold">🎉 Mastered</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="6" class="p-4 text-center text-slate-400">No student submissions logged yet.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+            <button type="submit">Publish & Assign Worksheet</button>
+        </form>
     </div>
+
+    <!-- Active Worksheets List -->
+    <div class="card">
+        <h2>Assigned Worksheets</h2>
+        {% if worksheets %}
+            <ul>
+                {% for sheet in worksheets %}
+                    <li>
+                        <strong>{{ sheet.title }}</strong> 
+                        <small>({{ sheet.created_at }})</small>
+                        {% if sheet.filename %}
+                            <br><span>Attached File: {{ sheet.filename }}</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No worksheets assigned yet.</p>
+        {% endif %}
+    </div>
+
+    <p><a href="/">← Back to Student View</a></p>
+
 </body>
 </html> 
