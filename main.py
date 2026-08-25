@@ -7,14 +7,16 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 app = Flask(__name__)
 
 DB_URL = os.environ.get('DATABASE_URL')
+_db_initialized = False
 
 def get_db():
     if DB_URL:
-        # Connect to Supabase PostgreSQL in production
-        conn = psycopg2.connect(DB_URL, cursor_factory=RealDictCursor)
-        return conn
+        conn_str = DB_URL
+        if 'sslmode' not in conn_str:
+            separator = '&' if '?' in conn_str else '?'
+            conn_str = f"{conn_str}{separator}sslmode=require"
+        return psycopg2.connect(conn_str, cursor_factory=RealDictCursor)
     else:
-        # Fallback to local SQLite for local testing
         conn = sqlite3.connect('grader.db')
         conn.row_factory = sqlite3.Row
         return conn
@@ -23,7 +25,6 @@ def execute_query(query, params=(), fetchone=False, fetchall=False, commit=False
     conn = get_db()
     cursor = conn.cursor()
     
-    # Handle placeholder syntax difference (%s for Postgres, ? for SQLite)
     if DB_URL:
         query = query.replace('?', '%s')
         
@@ -43,63 +44,79 @@ def execute_query(query, params=(), fetchone=False, fetchall=False, commit=False
     return result
 
 def init_db():
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    if DB_URL:
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS worksheets (
-                id SERIAL PRIMARY KEY,
-                title TEXT NOT NULL,
-                content TEXT,
-                filename TEXT,
-                assignment_type TEXT DEFAULT 'standard',
-                flash_speed TEXT,
-                status TEXT DEFAULT 'draft',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS grades (
-                id SERIAL PRIMARY KEY,
-                student_name TEXT NOT NULL,
-                worksheet_id INTEGER,
-                worksheet_title TEXT,
-                score TEXT NOT NULL,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        ''')
-    else:
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS worksheets (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                content TEXT,
-                filename TEXT,
-                assignment_type TEXT DEFAULT 'standard',
-                flash_speed TEXT,
-                status TEXT DEFAULT 'draft',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS grades (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_name TEXT NOT NULL,
-                worksheet_id INTEGER,
-                worksheet_title TEXT,
-                score TEXT NOT NULL,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-        ''')
-    conn.commit()
-    cursor.close()
-    conn.close()
+    global _db_initialized
+    if _db_initialized:
+        return
+        
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        if DB_URL:
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS worksheets (
+                    id SERIAL PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    content TEXT,
+                    filename TEXT,
+                    assignment_type TEXT DEFAULT 'standard',
+                    flash_speed TEXT,
+                    status TEXT DEFAULT 'draft',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS grades (
+                    id SERIAL PRIMARY KEY,
+                    student_name TEXT NOT NULL,
+                    worksheet_id INTEGER,
+                    worksheet_title TEXT,
+                    score TEXT NOT NULL,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
+        else:
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS worksheets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    content TEXT,
+                    filename TEXT,
+                    assignment_type TEXT DEFAULT 'standard',
+                    flash_speed TEXT,
+                    status TEXT DEFAULT 'draft',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS grades (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    student_name TEXT NOT NULL,
+                    worksheet_id INTEGER,
+                    worksheet_title TEXT,
+                    score TEXT NOT NULL,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
+        conn.commit()
+        cursor.close()
+        conn.close()
+        _db_initialized = True
+    except Exception as e:
+        print(f"Database setup error: {e}")
 
-# Initialize schema on startup
-init_db()
+@app.before_request
+def setup_db_on_first_request():
+    init_db()
 
 # ----------------- ROUTES ----------------- #
 
 @app.route('/')
 def home():
-    worksheets = execute_query("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC", fetchall=True)
+    try:
+        worksheets = execute_query("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC", fetchall=True)
+    except Exception:
+        worksheets = []
     return render_template('student.html', worksheets=worksheets or [])
 
 @app.route('/teacher', methods=['GET', 'POST'])
@@ -129,9 +146,12 @@ def teacher():
         
         return redirect(url_for('teacher'))
 
-    drafts = execute_query("SELECT * FROM worksheets WHERE status = 'draft' ORDER BY created_at DESC", fetchall=True)
-    assigned = execute_query("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC", fetchall=True)
-    completed_grades = execute_query("SELECT * FROM grades ORDER BY timestamp DESC", fetchall=True)
+    try:
+        drafts = execute_query("SELECT * FROM worksheets WHERE status = 'draft' ORDER BY created_at DESC", fetchall=True)
+        assigned = execute_query("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC", fetchall=True)
+        completed_grades = execute_query("SELECT * FROM grades ORDER BY timestamp DESC", fetchall=True)
+    except Exception:
+        drafts, assigned, completed_grades = [], [], []
     
     return render_template('teacher.html', drafts=drafts or [], assigned=assigned or [], grades=completed_grades or [])
 
