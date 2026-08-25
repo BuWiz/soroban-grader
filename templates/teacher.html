@@ -2,122 +2,102 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teacher Portal - Soroban Grader</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; padding: 20px; background-color: #f4f6f9; }
-        h1, h2 { color: #333; }
-        .card { background: #fff; padding: 20px; margin-bottom: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], select, textarea, input[type="file"], input[type="number"] {
-            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
-        }
-        textarea { height: 90px; resize: vertical; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .btn-group { display: flex; gap: 10px; }
-        .btn-primary { background-color: #007bff; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; flex: 1; font-size: 15px; }
-        .btn-secondary { background-color: #6c757d; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; flex: 1; font-size: 15px; }
-        .btn-assign { background-color: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-primary:hover { background-color: #0056b3; }
-        .btn-secondary:hover { background-color: #5a6268; }
-        .btn-assign:hover { background-color: #218838; }
-        ul { list-style-type: none; padding: 0; }
-        li { background: #e9ecef; margin-bottom: 10px; padding: 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
-        .badge { background: #17a2b8; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; text-transform: uppercase; margin-left: 8px; }
-    </style>
+    <title>Teacher Dashboard - Soroban Grader</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
-<body>
+<body class="bg-light p-4">
+<div class="container">
+    <h1 class="mb-4">Teacher Dashboard</h1>
 
-    <h1>Teacher Dashboard</h1>
-
-    <!-- Create / Save Worksheet Form -->
-    <div class="card">
-        <h2>Create Soroban Worksheet</h2>
-        <form action="/teacher" method="POST" enctype="multipart/form-data">
-            
-            <div class="form-group">
-                <label for="title">Worksheet Title:</label>
-                <input type="text" id="title" name="title" placeholder="e.g., Level 1 Flash Anzan / 3-Digit Addition" required>
-            </div>
-
-            <div class="grid-2">
-                <div class="form-group">
-                    <label for="assignment_type">Assignment Type:</label>
-                    <select id="assignment_type" name="assignment_type">
-                        <option value="standard">Standard Abacus Worksheet</option>
-                        <option value="flash">Flash Anzan (Mental Math)</option>
-                        <option value="file">File Upload (PDF / Image)</option>
-                    </select>
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">Create New Assignment</div>
+        <div class="card-body">
+            <form method="POST" action="/teacher" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label">Title</label>
+                    <input type="text" name="title" class="form-control" required>
                 </div>
-
-                <div class="form-group">
-                    <label for="flash_speed">Flash Speed (Seconds per Digits):</label>
-                    <input type="number" step="0.1" id="flash_speed" name="flash_speed" placeholder="1.5">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Assignment Type</label>
+                        <select name="assignment_type" class="form-select">
+                            <option value="standard">Standard Worksheet</option>
+                            <option value="flash">Flash Anzan</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Operation</label>
+                        <select name="operation" class="form-select">
+                            <option value="Addition">Addition</option>
+                            <option value="Subtraction">Subtraction</option>
+                            <option value="Multiplication">Multiplication</option>
+                            <option value="Division">Division</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Digits</label>
+                        <select name="digits" class="form-select">
+                            <option value="1-Digit">1-Digit</option>
+                            <option value="2-Digit">2-Digit</option>
+                            <option value="3-Digit">3-Digit</option>
+                            <option value="4-Digit">4-Digit</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label for="content">Problems / Instructions:</label>
-                <textarea id="content" name="content" placeholder="Enter problem sets, digit counts, or instructions..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="worksheet_file">Upload Worksheet File (Optional):</label>
-                <input type="file" id="worksheet_file" name="worksheet_file">
-            </div>
-
-            <div class="btn-group">
-                <button type="submit" name="action" value="draft" class="btn-secondary">💾 Save as Draft</button>
-                <button type="submit" name="action" value="publish" class="btn-primary">🚀 Assign Now</button>
-            </div>
-        </form>
+                <div class="mb-3">
+                    <label class="form-label">Flash Speed (ms - Optional)</label>
+                    <input type="text" name="flash_speed" class="form-control" placeholder="1500">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Problems / Content</label>
+                    <textarea name="content" class="form-control" rows="4"></textarea>
+                </div>
+                <button type="submit" name="action" value="draft" class="btn btn-secondary">Save as Draft</button>
+                <button type="submit" name="action" value="publish" class="btn btn-success">Publish to Students</button>
+            </form>
+        </div>
     </div>
 
-    <!-- Saved Drafts Library -->
-    <div class="card">
-        <h2>Saved Drafts (Unassigned)</h2>
-        {% if drafts %}
-            <ul>
-                {% for sheet in drafts %}
-                    <li>
-                        <div>
-                            <strong>{{ sheet.title }}</strong>
-                            <span class="badge">{{ sheet.assignment_type or 'Standard' }}</span>
-                            <br><small>Created: {{ sheet.created_at }}</small>
-                        </div>
-                        <form action="/publish/{{ sheet.id }}" method="POST" style="margin: 0;">
-                            <button type="submit" class="btn-assign">Assign to Students →</button>
-                        </form>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No draft worksheets saved.</p>
-        {% endif %}
+    <!-- Submissions Log with Remedial Trigger -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">Submissions Log</div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Student</th>
+                        <th>Assignment</th>
+                        <th>Type</th>
+                        <th>Category</th>
+                        <th>Score</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for g in grades %}
+                    <tr>
+                        <td>{{ g.timestamp }}</td>
+                        <td>{{ g.student_name }}</td>
+                        <td>{{ g.worksheet_title }}</td>
+                        <td><span class="badge bg-secondary">{{ g.assignment_type }}</span></td>
+                        <td><span class="badge bg-info">{{ g.operation }}</span> <span class="badge bg-warning text-dark">{{ g.digits }}</span></td>
+                        <td><strong>{{ g.score }}</strong></td>
+                        <td>
+                            {% if g.score != '100%' and g.score != '10/10' %}
+                            <form method="POST" action="/generate_remedial/{{ g.id }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-danger">Generate Remedial</button>
+                            </form>
+                            {% else %}
+                            <span class="text-success">Passed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-
-    <!-- Currently Active Assignments -->
-    <div class="card">
-        <h2>Active Student Assignments</h2>
-        {% if assigned %}
-            <ul>
-                {% for sheet in assigned %}
-                    <li>
-                        <div>
-                            <strong>{{ sheet.title }}</strong>
-                            <span class="badge" style="background-color: #28a745;">ACTIVE</span>
-                            <br><small>Assigned: {{ sheet.created_at }}</small>
-                        </div>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No active assignments published to students yet.</p>
-        {% endif %}
-    </div>
-
-    <p><a href="/">← View Student Portal</a> | <a href="/results">View Student Results →</a></p>
-
+</div>
 </body>
 </html> 
