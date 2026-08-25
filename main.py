@@ -53,7 +53,7 @@ def init_db():
         cursor = conn.cursor()
         
         if DB_URL:
-            # 1. Base tables setup
+            # 1. Base tables
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS worksheets (
                     id SERIAL PRIMARY KEY,
@@ -82,15 +82,25 @@ def init_db():
                     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             ''')
-            
-            # 2. Add columns if missing (Prevents 500 error on older existing schemas)
-            cursor.execute("ALTER TABLE worksheets ADD COLUMN IF NOT EXISTS operation TEXT DEFAULT 'Addition';")
-            cursor.execute("ALTER TABLE worksheets ADD COLUMN IF NOT EXISTS digits TEXT DEFAULT '1-Digit';")
-            cursor.execute("ALTER TABLE grades ADD COLUMN IF NOT EXISTS operation TEXT DEFAULT 'Addition';")
-            cursor.execute("ALTER TABLE grades ADD COLUMN IF NOT EXISTS digits TEXT DEFAULT '1-Digit';")
-            cursor.execute("ALTER TABLE grades ADD COLUMN IF NOT EXISTS assignment_type TEXT DEFAULT 'standard';")
-            cursor.execute("ALTER TABLE grades ADD COLUMN IF NOT EXISTS missed_problems TEXT;")
-            
+            conn.commit()
+
+            # 2. Add missing columns safely one by one
+            migrations = [
+                "ALTER TABLE worksheets ADD COLUMN IF NOT EXISTS operation TEXT DEFAULT 'Addition';",
+                "ALTER TABLE worksheets ADD COLUMN IF NOT EXISTS digits TEXT DEFAULT '1-Digit';",
+                "ALTER TABLE worksheets ADD COLUMN IF NOT EXISTS assignment_type TEXT DEFAULT 'standard';",
+                "ALTER TABLE worksheets ADD COLUMN IF NOT EXISTS flash_speed TEXT;",
+                "ALTER TABLE grades ADD COLUMN IF NOT EXISTS operation TEXT DEFAULT 'Addition';",
+                "ALTER TABLE grades ADD COLUMN IF NOT EXISTS digits TEXT DEFAULT '1-Digit';",
+                "ALTER TABLE grades ADD COLUMN IF NOT EXISTS assignment_type TEXT DEFAULT 'standard';",
+                "ALTER TABLE grades ADD COLUMN IF NOT EXISTS missed_problems TEXT;"
+            ]
+            for m in migrations:
+                try:
+                    cursor.execute(m)
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
         else:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS worksheets (
@@ -120,7 +130,8 @@ def init_db():
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
             ''')
-        conn.commit()
+            conn.commit()
+
         cursor.close()
         conn.close()
         _db_initialized = True
