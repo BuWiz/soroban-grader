@@ -28,32 +28,35 @@ def execute_query(query, params=(), fetchone=False, fetchall=False, commit=False
     if DB_URL:
         query = query.replace('?', '%s')
         
-    cursor.execute(query, params)
-    
-    result = None
-    if fetchone:
-        result = cursor.fetchone()
-    elif fetchall:
-        result = cursor.fetchall()
-        
-    if commit:
-        conn.commit()
-        
-    cursor.close()
-    conn.close()
-    return result
+    try:
+        cursor.execute(query, params)
+        result = None
+        if fetchone:
+            result = cursor.fetchone()
+        elif fetchall:
+            result = cursor.fetchall()
+            
+        if commit:
+            conn.commit()
+        return result
+    except Exception as e:
+        conn.rollback()
+        print(f"Query error: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
 
 def init_db():
     global _db_initialized
     if _db_initialized:
         return
         
+    conn = get_db()
+    cursor = conn.cursor()
+    
     try:
-        conn = get_db()
-        cursor = conn.cursor()
-        
         if DB_URL:
-            # 1. Base tables
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS worksheets (
                     id SERIAL PRIMARY KEY,
@@ -82,25 +85,6 @@ def init_db():
                     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             ''')
-            conn.commit()
-
-            # 2. Add missing columns safely one by one
-            migrations = [
-                "ALTER TABLE worksheets ADD COLUMN IF NOT EXISTS operation TEXT DEFAULT 'Addition';",
-                "ALTER TABLE worksheets ADD COLUMN IF NOT EXISTS digits TEXT DEFAULT '1-Digit';",
-                "ALTER TABLE worksheets ADD COLUMN IF NOT EXISTS assignment_type TEXT DEFAULT 'standard';",
-                "ALTER TABLE worksheets ADD COLUMN IF NOT EXISTS flash_speed TEXT;",
-                "ALTER TABLE grades ADD COLUMN IF NOT EXISTS operation TEXT DEFAULT 'Addition';",
-                "ALTER TABLE grades ADD COLUMN IF NOT EXISTS digits TEXT DEFAULT '1-Digit';",
-                "ALTER TABLE grades ADD COLUMN IF NOT EXISTS assignment_type TEXT DEFAULT 'standard';",
-                "ALTER TABLE grades ADD COLUMN IF NOT EXISTS missed_problems TEXT;"
-            ]
-            for m in migrations:
-                try:
-                    cursor.execute(m)
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
         else:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS worksheets (
@@ -130,13 +114,14 @@ def init_db():
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
             ''')
-            conn.commit()
-
-        cursor.close()
-        conn.close()
+        conn.commit()
         _db_initialized = True
     except Exception as e:
+        conn.rollback()
         print(f"Database setup error: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.before_request
 def setup_db_on_first_request():
@@ -146,17 +131,14 @@ def setup_db_on_first_request():
 
 @app.route('/')
 def home():
-    try:
-        due_worksheets = execute_query("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC", fetchall=True)
-        completed_grades = execute_query("SELECT * FROM grades ORDER BY timestamp DESC", fetchall=True)
-    except Exception:
-        due_worksheets, completed_grades = [], []
+    due_worksheets = execute_query("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC", fetchall=True)
+    completed_grades = execute_query("SELECT * FROM grades ORDER BY timestamp DESC", fetchall=True)
     return render_template('student.html', due_worksheets=due_worksheets or [], completed_grades=completed_grades or [])
 
 @app.route('/teacher', methods=['GET', 'POST'])
 def teacher():
     if request.method == 'POST':
-        title = request.form.get('title')
+        title = request.form.get('title', 'Untitled Worksheet')
         content = request.form.get('content', '')
         assignment_type = request.form.get('assignment_type', 'standard')
         operation = request.form.get('operation', 'Addition')
@@ -182,12 +164,9 @@ def teacher():
         
         return redirect(url_for('teacher'))
 
-    try:
-        drafts = execute_query("SELECT * FROM worksheets WHERE status = 'draft' ORDER BY created_at DESC", fetchall=True)
-        assigned = execute_query("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC", fetchall=True)
-        completed_grades = execute_query("SELECT * FROM grades ORDER BY timestamp DESC", fetchall=True)
-    except Exception:
-        drafts, assigned, completed_grades = [], [], []
+    drafts = execute_query("SELECT * FROM worksheets WHERE status = 'draft' ORDER BY created_at DESC", fetchall=True)
+    assigned = execute_query("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC", fetchall=True)
+    completed_grades = execute_query("SELECT * FROM grades ORDER BY timestamp DESC", fetchall=True)
     
     return render_template('teacher.html', drafts=drafts or [], assigned=assigned or [], grades=completed_grades or [])
 
@@ -202,11 +181,11 @@ def generate_remedial(grade_id):
     if not grade:
         return redirect(url_for('teacher'))
         
-    missed_problems = grade.get('missed_problems', '')
-    original_title = grade.get('worksheet_title', 'Worksheet')
-    operation = grade.get('operation', 'Addition')
-    digits = grade.get('digits', '1-Digit')
-    assignment_type = grade.get('assignment_type', 'standard')
+    missed_problems = grade.get('missed_problems', '') if isinstance(grade, dict) else grade['missed_problems']
+    original_title = grade.get('worksheet_title', 'Worksheet') if isinstance(grade, dict) else grade['worksheet_title']
+    operation = grade.get('operation', 'Addition') if isinstance(grade, dict) else grade['operation']
+    digits = grade.get('digits', '1-Digit') if isinstance(grade, dict) else grade['digits']
+    assignment_type = grade.get('assignment_type', 'standard') if isinstance(grade, dict) else grade['assignment_type']
 
     remedial_title = f"Remedial Practice: {original_title}"
     remedial_content = missed_problems if missed_problems else "Reinforcement Drill"
@@ -257,9 +236,9 @@ def submit_grade():
     if worksheet_id:
         sheet = execute_query('SELECT * FROM worksheets WHERE id = ?', (worksheet_id,), fetchone=True)
         
-    operation = sheet.get('operation', 'Addition') if sheet else 'Addition'
-    digits = sheet.get('digits', '1-Digit') if sheet else '1-Digit'
-    assignment_type = sheet.get('assignment_type', 'standard') if sheet else 'standard'
+    operation = (sheet.get('operation', 'Addition') if isinstance(sheet, dict) else sheet['operation']) if sheet else 'Addition'
+    digits = (sheet.get('digits', '1-Digit') if isinstance(sheet, dict) else sheet['digits']) if sheet else '1-Digit'
+    assignment_type = (sheet.get('assignment_type', 'standard') if isinstance(sheet, dict) else sheet['assignment_type']) if sheet else 'standard'
     
     execute_query('''
         INSERT INTO grades (student_name, worksheet_id, worksheet_title, operation, digits, assignment_type, score, missed_problems)
