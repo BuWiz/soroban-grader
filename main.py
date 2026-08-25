@@ -1,5 +1,4 @@
 import os
-import json
 import sqlite3
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -54,6 +53,7 @@ def init_db():
         cursor = conn.cursor()
         
         if DB_URL:
+            # 1. Base tables setup
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS worksheets (
                     id SERIAL PRIMARY KEY,
@@ -74,14 +74,23 @@ def init_db():
                     student_name TEXT NOT NULL,
                     worksheet_id INTEGER,
                     worksheet_title TEXT,
-                    operation TEXT,
-                    digits TEXT,
-                    assignment_type TEXT,
+                    operation TEXT DEFAULT 'Addition',
+                    digits TEXT DEFAULT '1-Digit',
+                    assignment_type TEXT DEFAULT 'standard',
                     score TEXT NOT NULL,
                     missed_problems TEXT,
                     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             ''')
+            
+            # 2. Add columns if missing (Prevents 500 error on older existing schemas)
+            cursor.execute("ALTER TABLE worksheets ADD COLUMN IF NOT EXISTS operation TEXT DEFAULT 'Addition';")
+            cursor.execute("ALTER TABLE worksheets ADD COLUMN IF NOT EXISTS digits TEXT DEFAULT '1-Digit';")
+            cursor.execute("ALTER TABLE grades ADD COLUMN IF NOT EXISTS operation TEXT DEFAULT 'Addition';")
+            cursor.execute("ALTER TABLE grades ADD COLUMN IF NOT EXISTS digits TEXT DEFAULT '1-Digit';")
+            cursor.execute("ALTER TABLE grades ADD COLUMN IF NOT EXISTS assignment_type TEXT DEFAULT 'standard';")
+            cursor.execute("ALTER TABLE grades ADD COLUMN IF NOT EXISTS missed_problems TEXT;")
+            
         else:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS worksheets (
@@ -103,9 +112,9 @@ def init_db():
                     student_name TEXT NOT NULL,
                     worksheet_id INTEGER,
                     worksheet_title TEXT,
-                    operation TEXT,
-                    digits TEXT,
-                    assignment_type TEXT,
+                    operation TEXT DEFAULT 'Addition',
+                    digits TEXT DEFAULT '1-Digit',
+                    assignment_type TEXT DEFAULT 'standard',
                     score TEXT NOT NULL,
                     missed_problems TEXT,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -127,7 +136,6 @@ def setup_db_on_first_request():
 @app.route('/')
 def home():
     try:
-        # Fetch active assigned worksheets (due) and student completion history
         due_worksheets = execute_query("SELECT * FROM worksheets WHERE status = 'assigned' ORDER BY created_at DESC", fetchall=True)
         completed_grades = execute_query("SELECT * FROM grades ORDER BY timestamp DESC", fetchall=True)
     except Exception:
@@ -234,7 +242,6 @@ def submit_grade():
     score = request.form.get('score')
     missed_problems = request.form.get('missed_problems', '')
     
-    # Retrieve worksheet parameters for grade log
     sheet = None
     if worksheet_id:
         sheet = execute_query('SELECT * FROM worksheets WHERE id = ?', (worksheet_id,), fetchone=True)
