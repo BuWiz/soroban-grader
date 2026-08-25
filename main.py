@@ -2,11 +2,11 @@ import os
 import json
 import urllib.request
 import urllib.error
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
-# Environment variables
+# Environment variables setup
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip('/')
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
@@ -39,15 +39,21 @@ def supabase_request(endpoint, method="GET", data=None):
 
 @app.route('/')
 def index():
-    return render_template('index.html') if os.path.exists('templates/index.html') else "Soroban Grader Online"
+    return render_template('student.html')
 
-@app.route('/teacher')
-@app.route('/teacher.html')
+@app.route('/teacher', methods=['GET', 'POST'])
+@app.route('/teacher.html', methods=['GET', 'POST'])
 def teacher_portal():
+    if request.method == 'POST':
+        # Accept both JSON payload and standard HTML form post
+        payload = request.get_json(silent=True) or request.form.to_dict()
+        if payload:
+            supabase_request('worksheets', method='POST', data=payload)
+        return redirect('/teacher')
     return render_template('teacher.html')
 
-@app.route('/student')
-@app.route('/student.html')
+@app.route('/student', methods=['GET'])
+@app.route('/student.html', methods=['GET'])
 def student_portal():
     return render_template('student.html')
 
@@ -56,7 +62,7 @@ def student_portal():
 @app.route('/api/worksheets', methods=['GET', 'POST'])
 def handle_worksheets():
     if request.method == 'POST':
-        payload = request.get_json() or {}
+        payload = request.get_json(silent=True) or request.form.to_dict()
         result = supabase_request('worksheets', method='POST', data=payload)
         if result is not None:
             return jsonify({"status": "success", "data": result}), 201
@@ -69,7 +75,7 @@ def handle_worksheets():
 @app.route('/api/grades', methods=['GET', 'POST'])
 def handle_grades():
     if request.method == 'POST':
-        payload = request.get_json() or {}
+        payload = request.get_json(silent=True) or request.form.to_dict()
         result = supabase_request('grades', method='POST', data=payload)
         if result is not None:
             return jsonify({"status": "success", "data": result}), 201
