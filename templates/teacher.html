@@ -22,10 +22,9 @@
 
     <h1>Teacher Dashboard</h1>
 
-    <!-- Create Assignment Form -->
     <div class="card">
         <h2>Create Assignment</h2>
-        <form id="assignmentForm" onsubmit="saveAssignment(event)">
+        <form id="assignmentForm">
             <div class="form-group">
                 <label for="w_title">Assignment Title:</label>
                 <input type="text" id="w_title" placeholder="e.g. Flash Anzan Set 1" required style="width: 98%;">
@@ -83,22 +82,18 @@
         </form>
     </div>
 
-    <!-- Student Grades -->
     <div class="card">
         <h2>Student Grades & Submissions</h2>
         <div id="gradesList">Loading student scores...</div>
     </div>
 
     <div class="grid">
-        <!-- Active Assigned Work -->
         <div class="card">
             <h2>Active Assigned Work</h2>
             <div id="assignedList">Loading active assignments...</div>
         </div>
-
-        <!-- Assignment Library -->
         <div class="card">
-            <h2>Assignment Library (Future Use)</h2>
+            <h2>Assignment Library</h2>
             <div id="libraryList">Loading library items...</div>
         </div>
     </div>
@@ -107,13 +102,12 @@
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
-            
             const reader = new FileReader();
             reader.onload = function(e) {
                 document.getElementById('w_content').value = e.target.result.trim();
                 const titleInput = document.getElementById('w_title');
                 if (!titleInput.value) {
-                    titleInput.value = file.name.rsplit ? file.name.rsplit('.', 1)[0] : file.name.split('.')[0];
+                    titleInput.value = file.name.split('.')[0];
                 }
             };
             reader.readAsText(file);
@@ -132,95 +126,80 @@
                 return;
             }
 
-            const payload = {
-                title: title,
-                type: type,
-                operation: operation,
-                digits: digits,
-                content: content,
-                flash_speed: flash_speed,
-                status: statusType
-            };
+            const payload = { title, type, operation, digits, content, flash_speed, status: statusType };
 
-            const res = await fetch('/api/worksheets', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            try {
+                const res = await fetch('/api/worksheets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-            if (res.ok) {
-                alert(`Successfully ${statusType === 'published' ? 'published' : 'saved'} assignment!`);
-                document.getElementById('assignmentForm').reset();
-                document.getElementById('w_type').value = 'Flash Anzan';
-                loadDashboard();
-            } else {
-                alert('Failed to save assignment. Check network log.');
+                const result = await res.json();
+
+                if (res.ok && result.status === 'success') {
+                    alert(`Successfully ${statusType === 'published' ? 'published' : 'saved'} assignment!`);
+                    document.getElementById('assignmentForm').reset();
+                    document.getElementById('w_type').value = 'Flash Anzan';
+                    loadDashboard();
+                } else {
+                    alert('Error from Server: ' + (result.message || JSON.stringify(result)));
+                }
+            } catch (err) {
+                alert('Network Error: ' + err.message);
             }
         }
 
         async function loadDashboard() {
-            // Worksheets
-            const res = await fetch('/api/worksheets');
-            const data = await res.json();
-            
-            const assignedContainer = document.getElementById('assignedList');
-            const libraryContainer = document.getElementById('libraryList');
-            
-            assignedContainer.innerHTML = '';
-            libraryContainer.innerHTML = '';
+            try {
+                const res = await fetch('/api/worksheets');
+                const data = await res.json();
+                
+                const assignedContainer = document.getElementById('assignedList');
+                const libraryContainer = document.getElementById('libraryList');
+                
+                assignedContainer.innerHTML = '';
+                libraryContainer.innerHTML = '';
 
-            if (data && data.length > 0) {
-                data.forEach(item => {
-                    const el = document.createElement('div');
-                    el.style.borderBottom = '1px solid #ddd';
-                    el.style.padding = '10px 0';
+                if (Array.isArray(data) && data.length > 0) {
+                    data.forEach(item => {
+                        const el = document.createElement('div');
+                        el.style.borderBottom = '1px solid #ddd';
+                        el.style.padding = '10px 0';
 
-                    const itemType = item.type || 'Standard Worksheet';
-                    const itemOp = item.operation || 'Addition';
-                    const itemDigits = item.digits || '1-Digit';
+                        const itemType = item.type || 'Standard Worksheet';
+                        const itemOp = item.operation || 'Addition';
+                        const itemDigits = item.digits || '1-Digit';
 
-                    if (item.status === 'published' || !item.status) {
-                        el.innerHTML = `<strong>${item.title}</strong> <span style="color:#007bff; font-weight:bold;">[${itemType}]</span> (${itemOp} - ${itemDigits})<br><small style="color:#28a745;">Status: Active</small>`;
-                        assignedContainer.appendChild(el);
-                    } else {
-                        el.innerHTML = `
-                            <strong>${item.title}</strong> <span style="color:#6c757d;">[${itemType}]</span> (${itemOp} - ${itemDigits})<br>
-                            <button class="btn btn-green" onclick="publishItem('${item.id}')" style="padding: 4px 8px; font-size: 12px; margin-top: 5px;">Assign to Students Now</button>
-                        `;
-                        libraryContainer.appendChild(el);
-                    }
-                });
-            } else {
-                assignedContainer.innerHTML = '<p>No active assignments.</p>';
-                libraryContainer.innerHTML = '<p>No saved items in library.</p>';
-            }
+                        if (item.status === 'published' || !item.status) {
+                            el.innerHTML = `<strong>${item.title}</strong> <span style="color:#007bff; font-weight:bold;">[${itemType}]</span> (${itemOp} - ${itemDigits})`;
+                            assignedContainer.appendChild(el);
+                        } else {
+                            el.innerHTML = `<strong>${item.title}</strong> <span style="color:#6c757d;">[${itemType}]</span> (${itemOp} - ${itemDigits})`;
+                            libraryContainer.appendChild(el);
+                        }
+                    });
+                } else {
+                    assignedContainer.innerHTML = '<p>No active assignments.</p>';
+                    libraryContainer.innerHTML = '<p>No saved items in library.</p>';
+                }
 
-            // Grades
-            const gradeRes = await fetch('/api/grades');
-            const grades = await gradeRes.json();
-            const gradesContainer = document.getElementById('gradesList');
-            gradesContainer.innerHTML = '';
+                const gradeRes = await fetch('/api/grades');
+                const grades = await gradeRes.json();
+                const gradesContainer = document.getElementById('gradesList');
+                gradesContainer.innerHTML = '';
 
-            if (grades && grades.length > 0) {
-                grades.forEach(g => {
-                    const gDiv = document.createElement('div');
-                    gDiv.className = 'grade-item';
-                    gDiv.innerHTML = `
-                        <div>
-                            <strong>${g.student_name || 'Student'}</strong> — Score: <b style="color:#28a745;">${g.score}/${g.total_problems}</b>
-                        </div>
-                        <small style="color:#666;">${new Date(g.timestamp).toLocaleString()}</small>
-                    `;
-                    gradesContainer.appendChild(gDiv);
-                });
-            } else {
-                gradesContainer.innerHTML = '<p>No student submissions recorded yet.</p>';
-            }
-        }
-
-        async function publishItem(id) {
-            await fetch(`/api/worksheets/publish/${id}`, { method: 'POST' });
-            loadDashboard();
+                if (Array.isArray(grades) && grades.length > 0) {
+                    grades.forEach(g => {
+                        const gDiv = document.createElement('div');
+                        gDiv.className = 'grade-item';
+                        gDiv.innerHTML = `<div><strong>${g.student_name || 'Student'}</strong> — Score: <b style="color:#28a745;">${g.score}/${g.total_problems}</b></div>`;
+                        gradesContainer.appendChild(gDiv);
+                    });
+                } else {
+                    gradesContainer.innerHTML = '<p>No student submissions recorded yet.</p>';
+                }
+            } catch(e) { console.error(e); }
         }
 
         loadDashboard();
