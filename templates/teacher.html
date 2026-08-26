@@ -10,12 +10,14 @@
         .btn { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn-green { background: #28a745; color: white; }
         .btn-gray { background: #6c757d; color: white; }
+        .btn-red { background: #dc3545; color: white; padding: 4px 10px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; }
         .file-box { border: 2px dashed #007bff; background: #eef6ff; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
         .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
         .form-group label { font-weight: bold; margin-bottom: 5px; }
         .form-group select, .form-group input, .form-group textarea { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; }
         .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 15px; }
         .grade-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
@@ -23,7 +25,7 @@
     <h1>Teacher Dashboard</h1>
 
     <div class="card">
-        <h2>Create Assignment</h2>
+        <h2>Create / Upload Assignment</h2>
         <form id="assignmentForm">
             <div class="form-group">
                 <label for="w_title">Assignment Title:</label>
@@ -78,7 +80,7 @@
             </div>
 
             <button type="button" onclick="submitWorksheet('published')" class="btn btn-green">Publish to Students</button>
-            <button type="button" onclick="submitWorksheet('draft')" class="btn btn-gray">Save to Library (Draft)</button>
+            <button type="button" onclick="submitWorksheet('draft')" class="btn btn-gray">Save as Draft</button>
         </form>
     </div>
 
@@ -89,12 +91,12 @@
 
     <div class="grid">
         <div class="card">
-            <h2>Active Assigned Work</h2>
+            <h2>Active Student Work Library</h2>
             <div id="assignedList">Loading active assignments...</div>
         </div>
         <div class="card">
-            <h2>Assignment Library</h2>
-            <div id="libraryList">Loading library items...</div>
+            <h2>Draft Library</h2>
+            <div id="libraryList">Loading draft items...</div>
         </div>
     </div>
 
@@ -122,7 +124,7 @@
             const flash_speed = parseInt(document.getElementById('w_flash_speed').value) || 3000;
 
             if (!title) {
-                alert('Please enter an assignment title!');
+                alert('Please enter an assignment title or select a file!');
                 return;
             }
 
@@ -138,7 +140,7 @@
                 const result = await res.json();
 
                 if (res.ok && result.status === 'success') {
-                    alert(`Successfully ${statusType === 'published' ? 'published' : 'saved'} assignment!`);
+                    alert(`Successfully saved "${title}" to library!`);
                     document.getElementById('assignmentForm').reset();
                     document.getElementById('w_type').value = 'Flash Anzan';
                     document.getElementById('w_flash_speed').value = '3000';
@@ -148,6 +150,13 @@
                 }
             } catch (err) {
                 alert('Network Error: ' + err.message);
+            }
+        }
+
+        async function deleteItem(id) {
+            if (confirm('Are you sure you want to delete this assignment from the library?')) {
+                await fetch(`/api/worksheets/${id}`, { method: 'DELETE' });
+                loadDashboard();
             }
         }
 
@@ -165,24 +174,33 @@
                 if (Array.isArray(data) && data.length > 0) {
                     data.forEach(item => {
                         const el = document.createElement('div');
-                        el.style.borderBottom = '1px solid #ddd';
-                        el.style.padding = '10px 0';
+                        el.className = 'item-row';
 
-                        const itemType = item.type || 'Standard Worksheet';
+                        const itemType = item.type || 'Flash Anzan';
                         const itemOp = item.operation || 'Addition';
                         const itemDigits = item.digits || '1-Digit';
 
                         if (item.status === 'published' || !item.status) {
-                            el.innerHTML = `<strong>${item.title}</strong> <span style="color:#007bff; font-weight:bold;">[${itemType}]</span> (${itemOp} - ${itemDigits})`;
+                            el.innerHTML = `
+                                <div>
+                                    <strong>${item.title}</strong> <span style="color:#007bff; font-weight:bold;">[${itemType}]</span> (${itemOp} - ${itemDigits})
+                                </div>
+                                <button class="btn-red" onclick="deleteItem('${item.id}')">Delete</button>
+                            `;
                             assignedContainer.appendChild(el);
                         } else {
-                            el.innerHTML = `<strong>${item.title}</strong> <span style="color:#6c757d;">[${itemType}]</span> (${itemOp} - ${itemDigits})`;
+                            el.innerHTML = `
+                                <div>
+                                    <strong>${item.title}</strong> <span style="color:#6c757d;">[${itemType}]</span> (${itemOp} - ${itemDigits})
+                                </div>
+                                <button class="btn-red" onclick="deleteItem('${item.id}')">Delete</button>
+                            `;
                             libraryContainer.appendChild(el);
                         }
                     });
                 } else {
-                    assignedContainer.innerHTML = '<p>No active assignments.</p>';
-                    libraryContainer.innerHTML = '<p>No saved items in library.</p>';
+                    assignedContainer.innerHTML = '<p style="color:#6c757d;">No active assignments in library.</p>';
+                    libraryContainer.innerHTML = '<p style="color:#6c757d;">No drafts saved.</p>';
                 }
 
                 const gradeRes = await fetch('/api/grades');
@@ -198,7 +216,7 @@
                         gradesContainer.appendChild(gDiv);
                     });
                 } else {
-                    gradesContainer.innerHTML = '<p>No student submissions recorded yet.</p>';
+                    gradesContainer.innerHTML = '<p style="color:#6c757d;">No student submissions recorded yet.</p>';
                 }
             } catch(e) { console.error(e); }
         }

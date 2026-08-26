@@ -59,11 +59,11 @@ def handle_worksheets():
         
         payload = {
             "title": data.get('title', 'Untitled Worksheet').strip(),
-            "type": data.get('type', 'Standard Worksheet'),
+            "type": data.get('type', 'Flash Anzan'),
             "operation": data.get('operation', 'Addition'),
             "digits": data.get('digits', '1-Digit'),
             "content": data.get('content', '').strip(),
-            "flash_speed": int(data.get('flash_speed', 1500)) if str(data.get('flash_speed', 1500)).isdigit() else 1500,
+            "flash_speed": int(data.get('flash_speed', 3000)) if str(data.get('flash_speed', 3000)).isdigit() else 3000,
             "status": data.get('status', 'published')
         }
         
@@ -74,6 +74,11 @@ def handle_worksheets():
     
     result = supabase_request('worksheets?select=*&order=created_at.desc')
     return jsonify(result if result is not None else [])
+
+@app.route('/api/worksheets/<id>', methods=['DELETE'])
+def delete_worksheet(id):
+    result = supabase_request(f'worksheets?id=eq.{id}', method='DELETE')
+    return jsonify({"status": "success", "data": result})
 
 @app.route('/api/worksheets/publish/<id>', methods=['POST'])
 def publish_worksheet(id):
