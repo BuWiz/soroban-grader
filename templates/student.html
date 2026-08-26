@@ -54,6 +54,9 @@
             font-size: 1.3rem;
             padding: 12px 20px;
             border-bottom: 3px solid #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .card-header-history {
@@ -117,7 +120,8 @@
         }
 
         .btn-start { background: linear-gradient(135deg, #6ee7b7 0%, #3b82f6 100%); color: white; }
-        .btn-submit { background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%); color: white; width: 100%; padding: 14px; font-size: 1.2rem; }
+        .btn-submit { background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%); color: white; width: 100%; padding: 14px; font-size: 1.2rem; margin-bottom: 10px; }
+        .btn-home { background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); color: #1e3a8a; border: 2px solid #fff; padding: 6px 14px; font-size: 0.85rem; }
 
         input[type="number"] {
             font-family: 'Fredoka One', cursive;
@@ -139,7 +143,8 @@
         <!-- Active Worksheet Container -->
         <div id="worksheetView" class="anime-card" style="display: none;">
             <div class="card-header-due" style="background: linear-gradient(90deg, #a1c4fd 0%, #c2e9fb 100%); color: #1e3a8a;">
-                ✏️ <span id="activeTitle">Worksheet</span>
+                <span>✏️ <span id="activeTitle">Worksheet</span></span>
+                <button type="button" class="btn-anime btn-home" onclick="returnToHome()">🏠 Home</button>
             </div>
             <div class="card-body">
                 <p id="activeMeta" style="color: #64748b; font-weight: 700; margin-top: 0;"></p>
@@ -152,6 +157,7 @@
                     <div id="problemsContainer"></div>
                     <br>
                     <button type="button" class="btn-anime btn-submit" onclick="submitWorksheet()">✨ Submit Answers ✨</button>
+                    <button type="button" class="btn-anime btn-submit" style="background: linear-gradient(135deg, #94a3b8 0%, #cbd5e1 100%); color: #334155;" onclick="returnToHome()">🏠 Back to Student Homepage</button>
                 </form>
             </div>
         </div>
@@ -179,6 +185,12 @@
             str = str.replace(/\+/g, ' + ');
             str = str.replace(/-/g, ' - ');
             return str.replace(/\s+/g, ' ').trim();
+        }
+
+        function returnToHome() {
+            document.getElementById('worksheetView').style.display = 'none';
+            loadStudentPortal();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         async function loadStudentPortal() {
@@ -343,8 +355,7 @@
             });
 
             alert(`🎉 Great work! You scored ${score} out of ${activeProblems.length}.`);
-            document.getElementById('worksheetView').style.display = 'none';
-            loadStudentPortal();
+            returnToHome();
         }
 
         async function loadHistory() {
