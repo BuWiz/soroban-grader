@@ -67,7 +67,6 @@
                     return;
                 }
 
-                // Filter for published worksheets
                 const activeItems = worksheets.filter(w => w.status === 'published' || !w.status);
 
                 if (activeItems.length === 0) {
@@ -83,7 +82,6 @@
                         <strong>${item.title}</strong> (${item.type} - ${item.operation} [${item.digits}]) 
                         <button class="btn btn-blue" style="float: right; padding: 4px 12px;" onclick="startWorksheet('${item.id}')">Start Task</button>
                     `;
-                    div.dataset.json = JSON.stringify(item);
                     dueContainer.appendChild(div);
                 });
 
@@ -96,49 +94,61 @@
         }
 
         async function startWorksheet(id) {
-            const res = await fetch('/api/worksheets');
-            const worksheets = await res.json();
-            currentWorksheet = worksheets.find(w => w.id === id);
+            try {
+                const res = await fetch('/api/worksheets');
+                const worksheets = await res.json();
+                currentWorksheet = worksheets.find(w => String(w.id) === String(id));
 
-            if (!currentWorksheet) return;
-
-            document.getElementById('activeTitle').innerText = currentWorksheet.title;
-            document.getElementById('activeMeta').innerText = `Type: ${currentWorksheet.type} | Operation: ${currentWorksheet.operation} | Digits: ${currentWorksheet.digits}`;
-
-            const container = document.getElementById('problemsContainer');
-            container.innerHTML = '';
-
-            // Split problem lines
-            const lines = (currentWorksheet.content || '').split('\n').filter(l => l.trim() !== '');
-            activeProblems = [];
-
-            lines.forEach((line, index) => {
-                const cleanLine = line.trim();
-                let expectedAnswer = null;
-
-                try {
-                    // Safe evaluation of simple math strings (e.g., 2+3, 5*4, 12/3)
-                    expectedAnswer = Function('"use strict"; return (' + cleanLine + ')')();
-                } catch(e) {
-                    expectedAnswer = null;
+                if (!currentWorksheet) {
+                    alert('Could not locate worksheet data.');
+                    return;
                 }
 
-                activeProblems.push({
-                    expression: cleanLine,
-                    correctAnswer: expectedAnswer
-                });
+                document.getElementById('activeTitle').innerText = currentWorksheet.title || 'Assignment';
+                document.getElementById('activeMeta').innerText = `Type: ${currentWorksheet.type || 'Standard'} | Operation: ${currentWorksheet.operation || 'N/A'} | Digits: ${currentWorksheet.digits || 'N/A'}`;
 
-                const pDiv = document.createElement('div');
-                pDiv.className = 'problem-card';
-                pDiv.innerHTML = `
-                    <label><strong>Problem ${index + 1}:</strong> &nbsp; ${cleanLine} = </label>
-                    <input type="number" id="answer_${index}" required style="width: 100px;">
-                `;
-                container.appendChild(pDiv);
-            });
+                const container = document.getElementById('problemsContainer');
+                container.innerHTML = '';
 
-            document.getElementById('worksheetView').style.display = 'block';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+                const rawContent = currentWorksheet.content || '';
+                const lines = rawContent.split(/[\r\n]+/).filter(l => l.trim() !== '');
+                activeProblems = [];
+
+                if (lines.length === 0) {
+                    container.innerHTML = '<p>No problems found in this assignment.</p>';
+                } else {
+                    lines.forEach((line, index) => {
+                        const cleanLine = line.trim();
+                        let expectedAnswer = null;
+
+                        try {
+                            expectedAnswer = Function('"use strict"; return (' + cleanLine.replace(/[^0-9+\-*/.]/g, '') + ')')();
+                        } catch(e) {
+                            expectedAnswer = null;
+                        }
+
+                        activeProblems.push({
+                            expression: cleanLine,
+                            correctAnswer: expectedAnswer
+                        });
+
+                        const pDiv = document.createElement('div');
+                        pDiv.className = 'problem-card';
+                        pDiv.innerHTML = `
+                            <label><strong>Problem ${index + 1}:</strong> &nbsp; ${cleanLine} = </label>
+                            <input type="number" id="answer_${index}" required style="width: 100px;">
+                        `;
+                        container.appendChild(pDiv);
+                    });
+                }
+
+                document.getElementById('worksheetView').style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            } catch (e) {
+                console.error('Error starting worksheet:', e);
+                alert('Error starting worksheet. Check console for details.');
+            }
         }
 
         async function submitWorksheet() {
@@ -181,7 +191,7 @@
 
             alert(`Great work, ${studentName}! You scored ${score} out of ${activeProblems.length}.`);
             document.getElementById('worksheetView').style.display = 'none';
-            loadHistory();
+            loadStudentPortal();
         }
 
         async function loadHistory() {
