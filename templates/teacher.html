@@ -11,10 +11,10 @@
         .btn-green { background: #28a745; color: white; }
         .btn-gray { background: #6c757d; color: white; }
         .file-box { border: 2px dashed #007bff; background: #eef6ff; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
-        .form-row { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
-        .form-group { display: flex; flex-direction: column; }
+        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
         .form-group label { font-weight: bold; margin-bottom: 5px; }
-        .form-group select, .form-group input { padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+        .form-group select, .form-group input, .form-group textarea { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 15px; }
         .grade-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
@@ -24,35 +24,35 @@
 
     <!-- Create / Upload Assignment Form -->
     <div class="card">
-        <h2>Create or Upload Worksheet</h2>
+        <h2>Create Assignment</h2>
         <form id="assignmentForm" action="/teacher" method="POST" enctype="multipart/form-data">
-            <p class="form-group">
-                <label>Title:</label>
-                <input type="text" name="title" placeholder="e.g. Flash Anzan Level 1" style="width: 98%; padding: 8px;">
-            </p>
+            <div class="form-group">
+                <label for="w_title">Assignment Title:</label>
+                <input type="text" id="w_title" name="title" placeholder="e.g. Flash Anzan Speed Run 1" required style="width: 98%;">
+            </div>
 
             <div class="file-box">
                 <label><strong>Option A: Upload Worksheet File (.txt, .csv, .json)</strong></label><br><br>
                 <input type="file" name="file_upload" accept=".txt,.csv,.json">
             </div>
 
-            <p class="form-group">
-                <label><strong>Option B: Type / Edit Problems Directly (One per line):</strong></label>
-                <textarea name="content" rows="5" placeholder="2+3&#10;5+4&#10;12+3" style="width: 98%; padding: 8px;"></textarea>
-            </p>
+            <div class="form-group">
+                <label for="w_content"><strong>Option B: Type Problems (One per line or comma-separated):</strong></label>
+                <textarea id="w_content" name="content" rows="5" placeholder="5, -3, +8, +6, -4&#10;9, +1, -2, +3, -7" style="width: 98%;"></textarea>
+            </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>Assignment Type:</label>
-                    <select name="type">
-                        <option value="Standard Worksheet">Standard Worksheet</option>
+                    <label for="w_type">Assignment Type:</label>
+                    <select id="w_type" name="type">
                         <option value="Flash Anzan">Flash Anzan</option>
+                        <option value="Standard Worksheet">Standard Worksheet</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>Operation:</label>
-                    <select name="operation">
+                    <label for="w_operation">Operation:</label>
+                    <select id="w_operation" name="operation">
                         <option value="Addition">Addition</option>
                         <option value="Subtraction">Subtraction</option>
                         <option value="Multiplication">Multiplication</option>
@@ -63,8 +63,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Digits:</label>
-                    <select name="digits">
+                    <label for="w_digits">Digits:</label>
+                    <select id="w_digits" name="digits">
                         <option value="1-Digit">1-Digit</option>
                         <option value="2-Digit">2-Digit</option>
                         <option value="3-Digit">3-Digit</option>
@@ -73,8 +73,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Flash Speed (ms per number):</label>
-                    <input type="number" name="flash_speed" value="1500" step="100">
+                    <label for="w_flash_speed">Flash Speed (ms):</label>
+                    <input type="number" id="w_flash_speed" name="flash_speed" value="1500" step="100">
                 </div>
             </div>
 
@@ -83,20 +83,20 @@
         </form>
     </div>
 
-    <!-- Student Grades Section -->
+    <!-- Student Submissions -->
     <div class="card">
         <h2>Student Grades & Submissions</h2>
         <div id="gradesList">Loading student scores...</div>
     </div>
 
     <div class="grid">
-        <!-- Active / Assigned Work -->
+        <!-- Active Assigned Work -->
         <div class="card">
             <h2>Active Assigned Work</h2>
             <div id="assignedList">Loading active assignments...</div>
         </div>
 
-        <!-- Assignment Library / Saved Worksheets -->
+        <!-- Assignment Library -->
         <div class="card">
             <h2>Assignment Library (Future Use)</h2>
             <div id="libraryList">Loading library items...</div>
@@ -105,7 +105,7 @@
 
     <script>
         async function loadDashboard() {
-            // Load Worksheets
+            // Fetch Worksheets
             const res = await fetch('/api/worksheets');
             const data = await res.json();
             
@@ -121,12 +121,16 @@
                     el.style.borderBottom = '1px solid #ddd';
                     el.style.padding = '10px 0';
 
+                    const itemType = item.type || 'Standard Worksheet';
+                    const itemOp = item.operation || 'Addition';
+                    const itemDigits = item.digits || '1-Digit';
+
                     if (item.status === 'published' || !item.status) {
-                        el.innerHTML = `<strong>${item.title}</strong> (${item.type} - ${item.operation})<br><small>Status: Active</small>`;
+                        el.innerHTML = `<strong>${item.title}</strong> <span style="color:#007bff; font-weight:bold;">[${itemType}]</span> (${itemOp} - ${itemDigits})<br><small style="color:#28a745;">Status: Active</small>`;
                         assignedContainer.appendChild(el);
                     } else {
                         el.innerHTML = `
-                            <strong>${item.title}</strong> (${item.type} - ${item.operation})<br>
+                            <strong>${item.title}</strong> <span style="color:#6c757d;">[${itemType}]</span> (${itemOp} - ${itemDigits})<br>
                             <button class="btn btn-green" onclick="publishItem('${item.id}')" style="padding: 4px 8px; font-size: 12px; margin-top: 5px;">Assign to Students Now</button>
                         `;
                         libraryContainer.appendChild(el);
@@ -137,7 +141,7 @@
                 libraryContainer.innerHTML = '<p>No saved items in library.</p>';
             }
 
-            // Load Student Grades
+            // Fetch Student Grades
             const gradeRes = await fetch('/api/grades');
             const grades = await gradeRes.json();
             const gradesContainer = document.getElementById('gradesList');
