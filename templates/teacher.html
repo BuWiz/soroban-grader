@@ -22,37 +22,37 @@
 
     <h1>Teacher Dashboard</h1>
 
-    <!-- Create / Upload Assignment Form -->
+    <!-- Create Assignment Form -->
     <div class="card">
         <h2>Create Assignment</h2>
-        <form id="assignmentForm" action="/teacher" method="POST" enctype="multipart/form-data">
+        <form id="assignmentForm" onsubmit="saveAssignment(event)">
             <div class="form-group">
                 <label for="w_title">Assignment Title:</label>
-                <input type="text" id="w_title" name="title" placeholder="e.g. Flash Anzan Speed Run 1" required style="width: 98%;">
+                <input type="text" id="w_title" placeholder="e.g. Flash Anzan Set 1" required style="width: 98%;">
             </div>
 
             <div class="file-box">
                 <label><strong>Option A: Upload Worksheet File (.txt, .csv, .json)</strong></label><br><br>
-                <input type="file" name="file_upload" accept=".txt,.csv,.json">
+                <input type="file" id="w_file" accept=".txt,.csv,.json" onchange="handleFileUpload(event)">
             </div>
 
             <div class="form-group">
-                <label for="w_content"><strong>Option B: Type Problems (One per line or comma-separated):</strong></label>
-                <textarea id="w_content" name="content" rows="5" placeholder="5, -3, +8, +6, -4&#10;9, +1, -2, +3, -7" style="width: 98%;"></textarea>
+                <label for="w_content"><strong>Option B: Type Problems (One per line):</strong></label>
+                <textarea id="w_content" rows="5" placeholder="5, -3, +8, +6, -4&#10;9, +1, -2, +3, -7" style="width: 98%;"></textarea>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
                     <label for="w_type">Assignment Type:</label>
-                    <select id="w_type" name="type">
-                        <option value="Flash Anzan">Flash Anzan</option>
+                    <select id="w_type">
+                        <option value="Flash Anzan" selected>Flash Anzan</option>
                         <option value="Standard Worksheet">Standard Worksheet</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label for="w_operation">Operation:</label>
-                    <select id="w_operation" name="operation">
+                    <select id="w_operation">
                         <option value="Addition">Addition</option>
                         <option value="Subtraction">Subtraction</option>
                         <option value="Multiplication">Multiplication</option>
@@ -64,7 +64,7 @@
 
                 <div class="form-group">
                     <label for="w_digits">Digits:</label>
-                    <select id="w_digits" name="digits">
+                    <select id="w_digits">
                         <option value="1-Digit">1-Digit</option>
                         <option value="2-Digit">2-Digit</option>
                         <option value="3-Digit">3-Digit</option>
@@ -74,16 +74,16 @@
 
                 <div class="form-group">
                     <label for="w_flash_speed">Flash Speed (ms):</label>
-                    <input type="number" id="w_flash_speed" name="flash_speed" value="1500" step="100">
+                    <input type="number" id="w_flash_speed" value="1500" step="100">
                 </div>
             </div>
 
-            <button type="submit" name="action" value="published" class="btn btn-green">Publish to Students</button>
-            <button type="submit" name="action" value="draft" class="btn btn-gray">Save to Library (Draft)</button>
+            <button type="button" onclick="submitWorksheet('published')" class="btn btn-green">Publish to Students</button>
+            <button type="button" onclick="submitWorksheet('draft')" class="btn btn-gray">Save to Library (Draft)</button>
         </form>
     </div>
 
-    <!-- Student Submissions -->
+    <!-- Student Grades -->
     <div class="card">
         <h2>Student Grades & Submissions</h2>
         <div id="gradesList">Loading student scores...</div>
@@ -104,8 +104,62 @@
     </div>
 
     <script>
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('w_content').value = e.target.result.trim();
+                const titleInput = document.getElementById('w_title');
+                if (!titleInput.value) {
+                    titleInput.value = file.name.rsplit ? file.name.rsplit('.', 1)[0] : file.name.split('.')[0];
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function submitWorksheet(statusType) {
+            const title = document.getElementById('w_title').value.trim();
+            const content = document.getElementById('w_content').value.trim();
+            const type = document.getElementById('w_type').value;
+            const operation = document.getElementById('w_operation').value;
+            const digits = document.getElementById('w_digits').value;
+            const flash_speed = parseInt(document.getElementById('w_flash_speed').value) || 1500;
+
+            if (!title) {
+                alert('Please enter an assignment title!');
+                return;
+            }
+
+            const payload = {
+                title: title,
+                type: type,
+                operation: operation,
+                digits: digits,
+                content: content,
+                flash_speed: flash_speed,
+                status: statusType
+            };
+
+            const res = await fetch('/api/worksheets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                alert(`Successfully ${statusType === 'published' ? 'published' : 'saved'} assignment!`);
+                document.getElementById('assignmentForm').reset();
+                document.getElementById('w_type').value = 'Flash Anzan';
+                loadDashboard();
+            } else {
+                alert('Failed to save assignment. Check network log.');
+            }
+        }
+
         async function loadDashboard() {
-            // Fetch Worksheets
+            // Worksheets
             const res = await fetch('/api/worksheets');
             const data = await res.json();
             
@@ -141,7 +195,7 @@
                 libraryContainer.innerHTML = '<p>No saved items in library.</p>';
             }
 
-            // Fetch Student Grades
+            // Grades
             const gradeRes = await fetch('/api/grades');
             const grades = await gradeRes.json();
             const gradesContainer = document.getElementById('gradesList');
