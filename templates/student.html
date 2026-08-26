@@ -3,77 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <title>Student Portal - Soroban Grader</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f8f9fa; }
+        .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header-box { background: #ffc107; padding: 10px 15px; font-weight: bold; border-radius: 6px 6px 0 0; color: #333; }
+        .header-box-green { background: #28a745; padding: 10px 15px; font-weight: bold; border-radius: 6px 6px 0 0; color: white; }
+        .content-box { border: 1px solid #ddd; border-top: none; padding: 15px; border-radius: 0 0 6px 6px; background: white; }
+        .problem-card { border: 1px solid #e0e0e0; padding: 15px; margin-bottom: 10px; border-radius: 6px; background: #fff; }
+        .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-green { background: #28a745; color: white; font-size: 16px; }
+        .btn-blue { background: #007bff; color: white; }
+        input[type="number"], input[type="text"] { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 16px; }
+    </style>
 </head>
-<body class="bg-light p-4">
-<div class="container">
-    <h1 class="mb-4">Student Portal</h1>
+<body>
+
+    <h1>Student Portal</h1>
+
+    <!-- Student Name Input -->
+    <div class="card">
+        <label><strong>Student Name:</strong></label>
+        <input type="text" id="studentName" placeholder="Enter your name" style="width: 250px;">
+    </div>
+
+    <!-- Active Worksheet Container -->
+    <div id="worksheetView" class="card" style="display: none;">
+        <h2 id="activeTitle">Worksheet</h2>
+        <p id="activeMeta" style="color: #666;"></p>
+        <hr>
+        <form id="submissionForm">
+            <div id="problemsContainer"></div>
+            <br>
+            <button type="button" class="btn btn-green" onclick="submitWorksheet()">Submit Assignment</button>
+        </form>
+    </div>
 
     <!-- Due Assignments -->
-    <div class="card mb-4">
-        <div class="card-header bg-warning text-dark font-weight-bold">Due Assignments</div>
-        <div class="card-body">
-            {% if due_worksheets %}
-            <div class="list-group">
-                {% for w in due_worksheets %}
-                <div class="list-group-item d-flex justify-content-between align-items-center mb-2 rounded shadow-sm">
-                    <div>
-                        <h5 class="mb-1">{{ w.title }}</h5>
-                        <span class="badge bg-primary">{{ w.operation or 'Addition' }}</span>
-                        <span class="badge bg-secondary">{{ w.digits or '1-Digit' }}</span>
-                        {% if w.assignment_type == 'flash' %}
-                        <span class="badge bg-danger">Flash Anzan ({{ w.flash_speed or '1500' }}ms)</span>
-                        {% else %}
-                        <span class="badge bg-info text-dark">Standard</span>
-                        {% endif %}
-                        <small class="text-muted ms-2">Assigned: {{ w.created_at }}</small>
-                    </div>
-                    <div>
-                        {% if w.assignment_type == 'flash' %}
-                        <a href="/flash_worksheet/{{ w.id }}" class="btn btn-sm btn-danger">Start Flash</a>
-                        {% else %}
-                        <a href="/worksheet/{{ w.id }}" class="btn btn-sm btn-primary">Start Worksheet</a>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="text-muted mb-0">No pending assignments due!</p>
-            {% endif %}
-        </div>
+    <div class="card">
+        <div class="header-box">Due Assignments</div>
+        <div class="content-box" id="dueList">Loading pending assignments...</div>
     </div>
 
     <!-- Completed History -->
-    <div class="card mb-4">
-        <div class="card-header bg-success text-white">Completed History</div>
-        <div class="card-body">
-            {% if completed_grades %}
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Date Completed</th>
-                        <th>Worksheet</th>
-                        <th>Category</th>
-                        <th>Score</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for cg in completed_grades %}
-                    <tr>
-                        <td>{{ cg.timestamp }}</td>
-                        <td>{{ cg.worksheet_title }}</td>
-                        <td><span class="badge bg-primary">{{ cg.operation }}</span> <span class="badge bg-secondary">{{ cg.digits }}</span></td>
-                        <td><span class="badge bg-success fs-6">{{ cg.score }}</span></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p class="text-muted mb-0">No completed assignments yet.</p>
-            {% endif %}
-        </div>
+    <div class="card">
+        <div class="header-box-green">Completed History</div>
+        <div class="content-box" id="completedList">Loading completed history...</div>
     </div>
-</div>
+
+    <script>
+        let currentWorksheet = null;
+        let activeProblems = [];
+
+        async function loadStudentPortal() {
+            try {
+                const res = await fetch('/api/worksheets');
+                const worksheets = await res.json();
+                
+                const dueContainer = document.getElementById('dueList');
+                dueContainer.innerHTML = '';
+
+                if (!worksheets || worksheets.length === 0) {
+                    dueContainer.innerHTML = '<p>No pending assignments due!</p>';
+                    return;
+                }
+
+                // Filter for published worksheets
+                const activeItems = worksheets.filter(w => w.status === 'published' || !w.status);
+
+                if (activeItems.length === 0) {
+                    dueContainer.innerHTML = '<p>No pending assignments due!</p>';
+                    return;
+                }
+
+                activeItems.forEach(item => {
+                    const div = document.createElement('div');
+                    div.style.padding = '10px 0';
+                    div.style.borderBottom = '1px solid #eee';
+                    div.innerHTML = `
+                        <strong>${item.title}</strong> (${item.type} - ${item.operation} [${item.digits}]) 
+                        <button class="btn btn-blue" style="float: right; padding: 4px 12px;" onclick="startWorksheet('${item.id}')">Start Task</button>
+                    `;
+                    div.dataset.json = JSON.stringify(item);
+                    dueContainer.appendChild(div);
+                });
+
+                loadHistory();
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('dueList').innerHTML = '<p>Error loading assignments. Please refresh.</p>';
+            }
+        }
+
+        async function startWorksheet(id) {
+            const res = await fetch('/api/worksheets');
+            const worksheets = await res.json();
+            currentWorksheet = worksheets.find(w => w.id === id);
+
+            if (!currentWorksheet) return;
+
+            document.getElementById('activeTitle').innerText = currentWorksheet.title;
+            document.getElementById('activeMeta').innerText = `Type: ${currentWorksheet.type} | Operation: ${currentWorksheet.operation} | Digits: ${currentWorksheet.digits}`;
+
+            const container = document.getElementById('problemsContainer');
+            container.innerHTML = '';
+
+            // Split problem lines
+            const lines = (currentWorksheet.content || '').split('\n').filter(l => l.trim() !== '');
+            activeProblems = [];
+
+            lines.forEach((line, index) => {
+                const cleanLine = line.trim();
+                let expectedAnswer = null;
+
+                try {
+                    // Safe evaluation of simple math strings (e.g., 2+3, 5*4, 12/3)
+                    expectedAnswer = Function('"use strict"; return (' + cleanLine + ')')();
+                } catch(e) {
+                    expectedAnswer = null;
+                }
+
+                activeProblems.push({
+                    expression: cleanLine,
+                    correctAnswer: expectedAnswer
+                });
+
+                const pDiv = document.createElement('div');
+                pDiv.className = 'problem-card';
+                pDiv.innerHTML = `
+                    <label><strong>Problem ${index + 1}:</strong> &nbsp; ${cleanLine} = </label>
+                    <input type="number" id="answer_${index}" required style="width: 100px;">
+                `;
+                container.appendChild(pDiv);
+            });
+
+            document.getElementById('worksheetView').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function submitWorksheet() {
+            const studentName = document.getElementById('studentName').value.trim();
+            if (!studentName) {
+                alert('Please enter your name at the top before submitting!');
+                return;
+            }
+
+            let score = 0;
+            const details = [];
+
+            activeProblems.forEach((prob, idx) => {
+                const val = document.getElementById(`answer_${idx}`).value;
+                const studentAns = val !== '' ? parseFloat(val) : null;
+                const isCorrect = studentAns === prob.correctAnswer;
+                if (isCorrect) score++;
+
+                details.push({
+                    problem: prob.expression,
+                    studentAnswer: studentAns,
+                    correctAnswer: prob.correctAnswer,
+                    isCorrect: isCorrect
+                });
+            });
+
+            const gradePayload = {
+                worksheet_id: currentWorksheet.id,
+                student_name: studentName,
+                score: score,
+                total_problems: activeProblems.length,
+                details: details
+            };
+
+            await fetch('/api/grades', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(gradePayload)
+            });
+
+            alert(`Great work, ${studentName}! You scored ${score} out of ${activeProblems.length}.`);
+            document.getElementById('worksheetView').style.display = 'none';
+            loadHistory();
+        }
+
+        async function loadHistory() {
+            try {
+                const res = await fetch('/api/grades');
+                const grades = await res.json();
+                const container = document.getElementById('completedList');
+                container.innerHTML = '';
+
+                if (!grades || grades.length === 0) {
+                    container.innerHTML = '<p>No completed assignments yet.</p>';
+                    return;
+                }
+
+                grades.forEach(g => {
+                    const div = document.createElement('div');
+                    div.style.padding = '8px 0';
+                    div.style.borderBottom = '1px solid #eee';
+                    div.innerHTML = `<strong>${g.student_name}</strong> - Score: ${g.score}/${g.total_problems} <small style="color:#777;">(${new Date(g.timestamp).toLocaleString()})</small>`;
+                    container.appendChild(div);
+                });
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        loadStudentPortal();
+    </script>
 </body>
-</html>  
+</html> 
