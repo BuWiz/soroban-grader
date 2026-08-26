@@ -95,14 +95,14 @@
             background: #000;
             color: #06d6a0;
             font-family: 'Fredoka One', cursive;
-            font-size: 4.5rem;
-            height: 180px;
+            font-size: 5rem;
+            height: 200px;
             border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 20px;
-            box-shadow: 0 0 20px rgba(6, 214, 160, 0.4);
+            box-shadow: 0 0 25px rgba(6, 214, 160, 0.5);
         }
 
         .btn-anime {
@@ -125,7 +125,7 @@
             padding: 8px 15px;
             border-radius: 10px;
             border: 2px solid #cbd5e1;
-            width: 100px;
+            width: 120px;
             text-align: center;
             outline: none;
         }
@@ -172,6 +172,15 @@
     <script>
         let currentWorksheet = null;
         let activeProblems = [];
+
+        // Helper to convert comma-separated values like "5, -3, +8" into standard math "5 - 3 + 8"
+        function sanitizeMathExpression(rawStr) {
+            let str = rawStr.replace(/,/g, ' ');
+            str = str.replace(/=/g, '');
+            str = str.replace(/\+/g, ' + ');
+            str = str.replace(/-/g, ' - ');
+            return str.replace(/\s+/g, ' ').trim();
+        }
 
         async function loadStudentPortal() {
             try {
@@ -236,24 +245,38 @@
                     document.getElementById('startFlashBtn').style.display = isFlash ? 'block' : 'none';
 
                     lines.forEach((line, index) => {
-                        const cleanLine = line.trim();
+                        const rawLine = line.trim();
+                        const mathExpression = sanitizeMathExpression(rawLine);
                         let expectedAnswer = null;
 
                         try {
-                            expectedAnswer = Function('"use strict"; return (' + cleanLine.replace(/[^0-9+\-*/.]/g, '') + ')')();
-                        } catch(e) {}
+                            expectedAnswer = Function('"use strict"; return (' + mathExpression + ')')();
+                        } catch(e) {
+                            console.error('Math parse error:', e);
+                        }
 
                         activeProblems.push({
-                            expression: cleanLine,
+                            expression: rawLine,
+                            sanitizedExpression: mathExpression,
                             correctAnswer: expectedAnswer
                         });
 
                         const pDiv = document.createElement('div');
                         pDiv.className = 'problem-card';
-                        pDiv.innerHTML = `
-                            <span>Problem ${index + 1}: &nbsp; <span style="color: var(--secondary-purple); font-size: 1.3rem;">${isFlash ? '???' : cleanLine + ' ='}</span></span>
-                            <input type="number" id="answer_${index}" required placeholder="?">
-                        `;
+                        
+                        // For Flash Anzan, hide the full equation text so students must watch screen
+                        if (isFlash) {
+                            pDiv.innerHTML = `
+                                <span>Problem ${index + 1}: &nbsp; <span style="color: var(--secondary-purple); font-size: 1.3rem;">[Watch Screen] =</span></span>
+                                <input type="number" id="answer_${index}" required placeholder="?">
+                            `;
+                        } else {
+                            pDiv.innerHTML = `
+                                <span>Problem ${index + 1}: &nbsp; <span style="color: var(--secondary-purple); font-size: 1.3rem;">${rawLine} =</span></span>
+                                <input type="number" id="answer_${index}" required placeholder="?">
+                            `;
+                        }
+                        
                         container.appendChild(pDiv);
                     });
 
@@ -265,17 +288,19 @@
         function runFlashSequence() {
             const flashBox = document.getElementById('flashBox');
             const speed = parseInt(currentWorksheet.flash_speed) || 1500;
+            
+            // Extract all signed numbers from sequence (e.g. "+8", "-6", "5")
             let sequence = [];
-
             activeProblems.forEach((prob) => {
-                const numbers = prob.expression.match(/(\d+)/g) || [];
-                sequence.push(...numbers);
+                const numbers = prob.sanitizedExpression.match(/([+-]?\s*\d+)/g) || [];
+                numbers.forEach(n => sequence.push(n.replace(/\s+/g, '')));
             });
 
             let idx = 0;
-            flashBox.innerText = '3...';
-            setTimeout(() => { flashBox.innerText = '2...'; }, 600);
-            setTimeout(() => { flashBox.innerText = '1...'; }, 1200);
+            flashBox.innerText = 'READY';
+            setTimeout(() => { flashBox.innerText = '3...'; }, 600);
+            setTimeout(() => { flashBox.innerText = '2...'; }, 1200);
+            setTimeout(() => { flashBox.innerText = '1...'; }, 1800);
 
             setTimeout(() => {
                 const interval = setInterval(() => {
@@ -287,7 +312,7 @@
                         flashBox.innerText = 'DONE!';
                     }
                 }, speed);
-            }, 1800);
+            }, 2400);
         }
 
         async function submitWorksheet() {
@@ -335,7 +360,7 @@
                 grades.forEach(g => {
                     const div = document.createElement('div');
                     div.className = 'task-item';
-                    div.innerHTML = `⭐ <strong>${g.student_name || 'Student'}</strong> — Score: <span style="color: var(--accent-green);">${g.score}/${g.total_problems}</span>`;
+                    div.innerHTML = `⭐ <strong>${g.student_name || 'Student'}</strong> — Score: <span style="color: var(--accent-green); font-size: 1.1rem; font-weight: bold;">${g.score}/${g.total_problems}</span>`;
                     container.appendChild(div);
                 });
             } else {
