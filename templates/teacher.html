@@ -15,6 +15,7 @@
         .form-group { display: flex; flex-direction: column; }
         .form-group label { font-weight: bold; margin-bottom: 5px; }
         .form-group select, .form-group input { padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+        .grade-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -27,18 +28,17 @@
         <form id="assignmentForm" action="/teacher" method="POST" enctype="multipart/form-data">
             <p class="form-group">
                 <label>Title:</label>
-                <input type="text" name="title" placeholder="e.g. Mixed Math Worksheet 1" style="width: 98%; padding: 8px;">
+                <input type="text" name="title" placeholder="e.g. Flash Anzan Level 1" style="width: 98%; padding: 8px;">
             </p>
 
             <div class="file-box">
                 <label><strong>Option A: Upload Worksheet File (.txt, .csv, .json)</strong></label><br><br>
                 <input type="file" name="file_upload" accept=".txt,.csv,.json">
-                <small style="display:block; margin-top: 5px; color: #555;">Uploading a file will automatically parse problem content into the database.</small>
             </div>
 
             <p class="form-group">
                 <label><strong>Option B: Type / Edit Problems Directly (One per line):</strong></label>
-                <textarea name="content" rows="5" placeholder="2+3&#10;5*4&#10;12/3" style="width: 98%; padding: 8px;"></textarea>
+                <textarea name="content" rows="5" placeholder="2+3&#10;5+4&#10;12+3" style="width: 98%; padding: 8px;"></textarea>
             </p>
 
             <div class="form-row">
@@ -47,7 +47,6 @@
                     <select name="type">
                         <option value="Standard Worksheet">Standard Worksheet</option>
                         <option value="Flash Anzan">Flash Anzan</option>
-                        <option value="Timed Test">Timed Test</option>
                     </select>
                 </div>
 
@@ -70,12 +69,11 @@
                         <option value="2-Digit">2-Digit</option>
                         <option value="3-Digit">3-Digit</option>
                         <option value="4-Digit">4-Digit</option>
-                        <option value="Multi-Digit Mixed">Multi-Digit Mixed</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>Flash Speed (ms - Optional):</label>
+                    <label>Flash Speed (ms per number):</label>
                     <input type="number" name="flash_speed" value="1500" step="100">
                 </div>
             </div>
@@ -83,6 +81,12 @@
             <button type="submit" name="action" value="published" class="btn btn-green">Publish to Students</button>
             <button type="submit" name="action" value="draft" class="btn btn-gray">Save to Library (Draft)</button>
         </form>
+    </div>
+
+    <!-- Student Grades Section -->
+    <div class="card">
+        <h2>Student Grades & Submissions</h2>
+        <div id="gradesList">Loading student scores...</div>
     </div>
 
     <div class="grid">
@@ -101,6 +105,7 @@
 
     <script>
         async function loadDashboard() {
+            // Load Worksheets
             const res = await fetch('/api/worksheets');
             const data = await res.json();
             
@@ -110,36 +115,49 @@
             assignedContainer.innerHTML = '';
             libraryContainer.innerHTML = '';
 
-            if (!data || data.length === 0) {
+            if (data && data.length > 0) {
+                data.forEach(item => {
+                    const el = document.createElement('div');
+                    el.style.borderBottom = '1px solid #ddd';
+                    el.style.padding = '10px 0';
+
+                    if (item.status === 'published' || !item.status) {
+                        el.innerHTML = `<strong>${item.title}</strong> (${item.type} - ${item.operation})<br><small>Status: Active</small>`;
+                        assignedContainer.appendChild(el);
+                    } else {
+                        el.innerHTML = `
+                            <strong>${item.title}</strong> (${item.type} - ${item.operation})<br>
+                            <button class="btn btn-green" onclick="publishItem('${item.id}')" style="padding: 4px 8px; font-size: 12px; margin-top: 5px;">Assign to Students Now</button>
+                        `;
+                        libraryContainer.appendChild(el);
+                    }
+                });
+            } else {
                 assignedContainer.innerHTML = '<p>No active assignments.</p>';
                 libraryContainer.innerHTML = '<p>No saved items in library.</p>';
-                return;
             }
 
-            let publishedCount = 0;
-            let draftCount = 0;
+            // Load Student Grades
+            const gradeRes = await fetch('/api/grades');
+            const grades = await gradeRes.json();
+            const gradesContainer = document.getElementById('gradesList');
+            gradesContainer.innerHTML = '';
 
-            data.forEach(item => {
-                const el = document.createElement('div');
-                el.style.borderBottom = '1px solid #ddd';
-                el.style.padding = '10px 0';
-
-                if (item.status === 'published' || !item.status) {
-                    publishedCount++;
-                    el.innerHTML = `<strong>${item.title}</strong> (${item.type} - ${item.operation} [${item.digits}])<br><small>Status: Active</small>`;
-                    assignedContainer.appendChild(el);
-                } else {
-                    draftCount++;
-                    el.innerHTML = `
-                        <strong>${item.title}</strong> (${item.type} - ${item.operation} [${item.digits}])<br>
-                        <button class="btn btn-green" onclick="publishItem('${item.id}')" style="padding: 4px 8px; font-size: 12px; margin-top: 5px;">Assign to Students Now</button>
+            if (grades && grades.length > 0) {
+                grades.forEach(g => {
+                    const gDiv = document.createElement('div');
+                    gDiv.className = 'grade-item';
+                    gDiv.innerHTML = `
+                        <div>
+                            <strong>${g.student_name || 'Student'}</strong> — Score: <b style="color:#28a745;">${g.score}/${g.total_problems}</b>
+                        </div>
+                        <small style="color:#666;">${new Date(g.timestamp).toLocaleString()}</small>
                     `;
-                    libraryContainer.appendChild(el);
-                }
-            });
-
-            if (publishedCount === 0) assignedContainer.innerHTML = '<p>No active assignments.</p>';
-            if (draftCount === 0) libraryContainer.innerHTML = '<p>No saved items in library.</p>';
+                    gradesContainer.appendChild(gDiv);
+                });
+            } else {
+                gradesContainer.innerHTML = '<p>No student submissions recorded yet.</p>';
+            }
         }
 
         async function publishItem(id) {
