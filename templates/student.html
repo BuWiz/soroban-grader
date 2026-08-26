@@ -2,52 +2,205 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Student Portal - Soroban Grader</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soroban Grader - Student Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f8f9fa; }
-        .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header-box { background: #ffc107; padding: 10px 15px; font-weight: bold; border-radius: 6px 6px 0 0; color: #333; }
-        .header-box-green { background: #28a745; padding: 10px 15px; font-weight: bold; border-radius: 6px 6px 0 0; color: white; }
-        .content-box { border: 1px solid #ddd; border-top: none; padding: 15px; border-radius: 0 0 6px 6px; background: white; }
-        .problem-card { border: 1px solid #e0e0e0; padding: 15px; margin-bottom: 10px; border-radius: 6px; background: #fff; }
-        .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-green { background: #28a745; color: white; font-size: 16px; }
-        .btn-blue { background: #007bff; color: white; }
-        input[type="number"], input[type="text"] { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 16px; }
+        :root {
+            --primary-pink: #ff758c;
+            --secondary-purple: #7b2cbf;
+            --bg-gradient: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --accent-yellow: #ffb703;
+            --accent-green: #06d6a0;
+            --text-dark: #2b2d42;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            margin: 0;
+            padding: 20px;
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2.5rem;
+            color: #fff;
+            text-align: center;
+            text-shadow: 3px 3px 0px var(--secondary-purple), 6px 6px 0px rgba(0,0,0,0.15);
+            letter-spacing: 1px;
+            margin-bottom: 25px;
+        }
+
+        .anime-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 0;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px rgba(123, 44, 191, 0.15);
+            border: 3px solid #fff;
+            overflow: hidden;
+            backdrop-filter: blur(5px);
+            transition: transform 0.2s ease;
+        }
+
+        .card-header-due {
+            background: linear-gradient(90deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+            color: #d63384;
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.3rem;
+            padding: 12px 20px;
+            border-bottom: 3px solid #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-header-history {
+            background: linear-gradient(90deg, #84fab0 0%, #8fd3f4 100%);
+            color: #0f5132;
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.3rem;
+            padding: 12px 20px;
+            border-bottom: 3px solid #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .task-item {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            transition: all 0.2s ease;
+        }
+
+        .task-item:hover {
+            border-color: var(--primary-pink);
+            transform: translateY(-2px);
+        }
+
+        .problem-card {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .btn-anime {
+            font-family: 'Fredoka One', cursive;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 22px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 0px rgba(0,0,0,0.2);
+            text-transform: uppercase;
+        }
+
+        .btn-anime:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0px rgba(0,0,0,0.2);
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #6ee7b7 0%, #3b82f6 100%);
+            color: white;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
+            color: white;
+            width: 100%;
+            padding: 14px;
+            font-size: 1.2rem;
+        }
+
+        input[type="number"] {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.2rem;
+            padding: 8px 15px;
+            border-radius: 10px;
+            border: 2px solid #cbd5e1;
+            width: 100px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--primary-pink);
+            box-shadow: 0 0 8px rgba(255, 117, 140, 0.4);
+        }
+
+        .history-item {
+            padding: 10px 0;
+            border-bottom: 1px dashed #cbd5e1;
+            font-weight: 700;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Student Portal</h1>
+    <div class="container">
+        <h1 class="header-title">✨ Soroban Student Portal ✨</h1>
 
-    <!-- Student Name Input -->
-    <div class="card">
-        <label><strong>Student Name:</strong></label>
-        <input type="text" id="studentName" placeholder="Enter your name" style="width: 250px;">
-    </div>
+        <!-- Active Worksheet Container -->
+        <div id="worksheetView" class="anime-card" style="display: none;">
+            <div class="card-header-due" style="background: linear-gradient(90deg, #a1c4fd 0%, #c2e9fb 100%); color: #1e3a8a;">
+                ✏️ <span id="activeTitle">Worksheet</span>
+            </div>
+            <div class="card-body">
+                <p id="activeMeta" style="color: #64748b; font-weight: 700; margin-top: 0;"></p>
+                <form id="submissionForm">
+                    <div id="problemsContainer"></div>
+                    <br>
+                    <button type="button" class="btn-anime btn-submit" onclick="submitWorksheet()">✨ Submit Answers ✨</button>
+                </form>
+            </div>
+        </div>
 
-    <!-- Active Worksheet Container -->
-    <div id="worksheetView" class="card" style="display: none;">
-        <h2 id="activeTitle">Worksheet</h2>
-        <p id="activeMeta" style="color: #666;"></p>
-        <hr>
-        <form id="submissionForm">
-            <div id="problemsContainer"></div>
-            <br>
-            <button type="button" class="btn btn-green" onclick="submitWorksheet()">Submit Assignment</button>
-        </form>
-    </div>
+        <!-- Due Assignments -->
+        <div class="anime-card">
+            <div class="card-header-due">⚡ Due Assignments</div>
+            <div class="card-body" id="dueList">Loading pending assignments...</div>
+        </div>
 
-    <!-- Due Assignments -->
-    <div class="card">
-        <div class="header-box">Due Assignments</div>
-        <div class="content-box" id="dueList">Loading pending assignments...</div>
-    </div>
-
-    <!-- Completed History -->
-    <div class="card">
-        <div class="header-box-green">Completed History</div>
-        <div class="content-box" id="completedList">Loading completed history...</div>
+        <!-- Completed History -->
+        <div class="anime-card">
+            <div class="card-header-history">🌸 Completed History</div>
+            <div class="card-body" id="completedList">Loading completed history...</div>
+        </div>
     </div>
 
     <script>
@@ -63,24 +216,26 @@
                 dueContainer.innerHTML = '';
 
                 if (!worksheets || worksheets.length === 0) {
-                    dueContainer.innerHTML = '<p>No pending assignments due!</p>';
+                    dueContainer.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No pending assignments due!</p>';
                     return;
                 }
 
                 const activeItems = worksheets.filter(w => w.status === 'published' || !w.status);
 
                 if (activeItems.length === 0) {
-                    dueContainer.innerHTML = '<p>No pending assignments due!</p>';
+                    dueContainer.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No pending assignments due!</p>';
                     return;
                 }
 
                 activeItems.forEach(item => {
                     const div = document.createElement('div');
-                    div.style.padding = '10px 0';
-                    div.style.borderBottom = '1px solid #eee';
+                    div.className = 'task-item';
                     div.innerHTML = `
-                        <strong>${item.title}</strong> (${item.type} - ${item.operation} [${item.digits}]) 
-                        <button class="btn btn-blue" style="float: right; padding: 4px 12px;" onclick="startWorksheet('${item.id}')">Start Task</button>
+                        <div>
+                            <strong style="font-size: 1.1rem; color: #1e293b;">${item.title}</strong><br>
+                            <small style="color: #64748b;">${item.type || 'Standard'} • ${item.operation || 'N/A'} [${item.digits || 'N/A'}]</small>
+                        </div>
+                        <button class="btn-anime btn-start" onclick="startWorksheet('${item.id}')">Start Task 🎯</button>
                     `;
                     dueContainer.appendChild(div);
                 });
@@ -89,75 +244,67 @@
 
             } catch (err) {
                 console.error(err);
-                document.getElementById('dueList').innerHTML = '<p>Error loading assignments. Please refresh.</p>';
+                document.getElementById('dueList').innerHTML = '<p style="color: #ef4444;">Error loading assignments. Please refresh.</p>';
             }
         }
 
-        async function startWorksheet(id) {
-            try {
-                const res = await fetch('/api/worksheets');
-                const worksheets = await res.json();
-                currentWorksheet = worksheets.find(w => String(w.id) === String(id));
+        function startWorksheet(id) {
+            fetch('/api/worksheets')
+                .then(res => res.json())
+                .then(worksheets => {
+                    const item = worksheets.find(w => String(w.id) === String(id));
+                    if (!item) {
+                        alert('Worksheet not found.');
+                        return;
+                    }
 
-                if (!currentWorksheet) {
-                    alert('Could not locate worksheet data.');
-                    return;
-                }
+                    currentWorksheet = item;
+                    document.getElementById('activeTitle').innerText = item.title || 'Assignment';
+                    document.getElementById('activeMeta').innerText = `Type: ${item.type || 'Standard'} | Operation: ${item.operation || 'N/A'} | Digits: ${item.digits || 'N/A'}`;
 
-                document.getElementById('activeTitle').innerText = currentWorksheet.title || 'Assignment';
-                document.getElementById('activeMeta').innerText = `Type: ${currentWorksheet.type || 'Standard'} | Operation: ${currentWorksheet.operation || 'N/A'} | Digits: ${currentWorksheet.digits || 'N/A'}`;
+                    const container = document.getElementById('problemsContainer');
+                    container.innerHTML = '';
 
-                const container = document.getElementById('problemsContainer');
-                container.innerHTML = '';
+                    const lines = (item.content || '').split(/[\r\n]+/).filter(l => l.trim() !== '');
+                    activeProblems = [];
 
-                const rawContent = currentWorksheet.content || '';
-                const lines = rawContent.split(/[\r\n]+/).filter(l => l.trim() !== '');
-                activeProblems = [];
+                    if (lines.length === 0) {
+                        container.innerHTML = '<p>No problems found in this assignment.</p>';
+                    } else {
+                        lines.forEach((line, index) => {
+                            const cleanLine = line.trim();
+                            let expectedAnswer = null;
 
-                if (lines.length === 0) {
-                    container.innerHTML = '<p>No problems found in this assignment.</p>';
-                } else {
-                    lines.forEach((line, index) => {
-                        const cleanLine = line.trim();
-                        let expectedAnswer = null;
+                            try {
+                                expectedAnswer = Function('"use strict"; return (' + cleanLine.replace(/[^0-9+\-*/.]/g, '') + ')')();
+                            } catch(e) {
+                                expectedAnswer = null;
+                            }
 
-                        try {
-                            expectedAnswer = Function('"use strict"; return (' + cleanLine.replace(/[^0-9+\-*/.]/g, '') + ')')();
-                        } catch(e) {
-                            expectedAnswer = null;
-                        }
+                            activeProblems.push({
+                                expression: cleanLine,
+                                correctAnswer: expectedAnswer
+                            });
 
-                        activeProblems.push({
-                            expression: cleanLine,
-                            correctAnswer: expectedAnswer
+                            const pDiv = document.createElement('div');
+                            pDiv.className = 'problem-card';
+                            pDiv.innerHTML = `
+                                <span>Problem ${index + 1}: &nbsp; <span style="color: var(--secondary-purple); font-size: 1.3rem;">${cleanLine} =</span></span>
+                                <input type="number" id="answer_${index}" required placeholder="?">
+                            `;
+                            container.appendChild(pDiv);
                         });
+                    }
 
-                        const pDiv = document.createElement('div');
-                        pDiv.className = 'problem-card';
-                        pDiv.innerHTML = `
-                            <label><strong>Problem ${index + 1}:</strong> &nbsp; ${cleanLine} = </label>
-                            <input type="number" id="answer_${index}" required style="width: 100px;">
-                        `;
-                        container.appendChild(pDiv);
-                    });
-                }
-
-                document.getElementById('worksheetView').style.display = 'block';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-
-            } catch (e) {
-                console.error('Error starting worksheet:', e);
-                alert('Error starting worksheet. Check console for details.');
-            }
+                    document.getElementById('worksheetView').style.display = 'block';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                })
+                .catch(err => {
+                    alert('Error loading worksheet: ' + err.message);
+                });
         }
 
         async function submitWorksheet() {
-            const studentName = document.getElementById('studentName').value.trim();
-            if (!studentName) {
-                alert('Please enter your name at the top before submitting!');
-                return;
-            }
-
             let score = 0;
             const details = [];
 
@@ -177,7 +324,7 @@
 
             const gradePayload = {
                 worksheet_id: currentWorksheet.id,
-                student_name: studentName,
+                student_name: 'Student',
                 score: score,
                 total_problems: activeProblems.length,
                 details: details
@@ -189,7 +336,7 @@
                 body: JSON.stringify(gradePayload)
             });
 
-            alert(`Great work, ${studentName}! You scored ${score} out of ${activeProblems.length}.`);
+            alert(`🎉 Great work! You scored ${score} out of ${activeProblems.length}.`);
             document.getElementById('worksheetView').style.display = 'none';
             loadStudentPortal();
         }
@@ -202,15 +349,14 @@
                 container.innerHTML = '';
 
                 if (!grades || grades.length === 0) {
-                    container.innerHTML = '<p>No completed assignments yet.</p>';
+                    container.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No completed assignments yet.</p>';
                     return;
                 }
 
                 grades.forEach(g => {
                     const div = document.createElement('div');
-                    div.style.padding = '8px 0';
-                    div.style.borderBottom = '1px solid #eee';
-                    div.innerHTML = `<strong>${g.student_name}</strong> - Score: ${g.score}/${g.total_problems} <small style="color:#777;">(${new Date(g.timestamp).toLocaleString()})</small>`;
+                    div.className = 'history-item';
+                    div.innerHTML = `⭐ <strong>${g.student_name || 'Student'}</strong> — Score: <span style="color: var(--accent-green); font-size: 1.1rem;">${g.score}/${g.total_problems}</span> <small style="color:#94a3b8; float: right;">(${new Date(g.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})</small>`;
                     container.appendChild(div);
                 });
             } catch(e) {
