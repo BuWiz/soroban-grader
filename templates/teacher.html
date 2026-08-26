@@ -11,6 +11,10 @@
         .btn-green { background: #28a745; color: white; }
         .btn-gray { background: #6c757d; color: white; }
         .file-box { border: 2px dashed #007bff; background: #eef6ff; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
+        .form-row { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-weight: bold; margin-bottom: 5px; }
+        .form-group select, .form-group input { padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
     </style>
 </head>
 <body>
@@ -21,39 +25,60 @@
     <div class="card">
         <h2>Create or Upload Worksheet</h2>
         <form id="assignmentForm" action="/teacher" method="POST" enctype="multipart/form-data">
-            <p>
-                <label>Title:</label><br>
-                <input type="text" name="title" placeholder="e.g. Addition Worksheet 1" style="width: 100%; padding: 8px;">
+            <p class="form-group">
+                <label>Title:</label>
+                <input type="text" name="title" placeholder="e.g. Mixed Math Worksheet 1" style="width: 98%; padding: 8px;">
             </p>
 
             <div class="file-box">
                 <label><strong>Option A: Upload Worksheet File (.txt, .csv, .json)</strong></label><br><br>
                 <input type="file" name="file_upload" accept=".txt,.csv,.json">
-                <small style="display:block; margin-top: 5px; color: #555;">Uploading a file will auto-populate problem content.</small>
+                <small style="display:block; margin-top: 5px; color: #555;">Uploading a file will automatically parse problem content into the database.</small>
             </div>
 
-            <p>
-                <label><strong>Option B: Type / Edit Problems Directly (One per line):</strong></label><br>
-                <textarea name="content" rows="5" placeholder="2+3&#10;5+4&#10;1+6" style="width: 100%;"></textarea>
+            <p class="form-group">
+                <label><strong>Option B: Type / Edit Problems Directly (One per line):</strong></label>
+                <textarea name="content" rows="5" placeholder="2+3&#10;5*4&#10;12/3" style="width: 98%; padding: 8px;"></textarea>
             </p>
 
-            <p>
-                <label>Type:</label>
-                <select name="type">
-                    <option value="Standard Worksheet">Standard Worksheet</option>
-                    <option value="Flash Anzan">Flash Anzan</option>
-                </select>
-                <label>Operation:</label>
-                <select name="operation">
-                    <option value="Addition">Addition</option>
-                    <option value="Subtraction">Subtraction</option>
-                </select>
-                <label>Digits:</label>
-                <select name="digits">
-                    <option value="1-Digit">1-Digit</option>
-                    <option value="2-Digit">2-Digit</option>
-                </select>
-            </p>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Assignment Type:</label>
+                    <select name="type">
+                        <option value="Standard Worksheet">Standard Worksheet</option>
+                        <option value="Flash Anzan">Flash Anzan</option>
+                        <option value="Timed Test">Timed Test</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Operation:</label>
+                    <select name="operation">
+                        <option value="Addition">Addition</option>
+                        <option value="Subtraction">Subtraction</option>
+                        <option value="Multiplication">Multiplication</option>
+                        <option value="Division">Division</option>
+                        <option value="Mixed (Add/Sub)">Mixed (Add/Sub)</option>
+                        <option value="Mixed (All)">Mixed (All Operations)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Digits:</label>
+                    <select name="digits">
+                        <option value="1-Digit">1-Digit</option>
+                        <option value="2-Digit">2-Digit</option>
+                        <option value="3-Digit">3-Digit</option>
+                        <option value="4-Digit">4-Digit</option>
+                        <option value="Multi-Digit Mixed">Multi-Digit Mixed</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Flash Speed (ms - Optional):</label>
+                    <input type="number" name="flash_speed" value="1500" step="100">
+                </div>
+            </div>
 
             <button type="submit" name="action" value="published" class="btn btn-green">Publish to Students</button>
             <button type="submit" name="action" value="draft" class="btn btn-gray">Save to Library (Draft)</button>
@@ -101,12 +126,12 @@
 
                 if (item.status === 'published' || !item.status) {
                     publishedCount++;
-                    el.innerHTML = `<strong>${item.title}</strong> (${item.type} - ${item.operation})<br><small>Status: Active</small>`;
+                    el.innerHTML = `<strong>${item.title}</strong> (${item.type} - ${item.operation} [${item.digits}])<br><small>Status: Active</small>`;
                     assignedContainer.appendChild(el);
                 } else {
                     draftCount++;
                     el.innerHTML = `
-                        <strong>${item.title}</strong> (${item.type} - ${item.operation})<br>
+                        <strong>${item.title}</strong> (${item.type} - ${item.operation} [${item.digits}])<br>
                         <button class="btn btn-green" onclick="publishItem('${item.id}')" style="padding: 4px 8px; font-size: 12px; margin-top: 5px;">Assign to Students Now</button>
                     `;
                     libraryContainer.appendChild(el);
