@@ -20,6 +20,13 @@
         .grade-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
         .actions { display: flex; align-items: center; }
+        
+        /* Category Library Tabs */
+        .tab-bar { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid #ddd; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { padding: 8px 14px; border: none; background: #e9ecef; border-radius: 4px 4px 0 0; cursor: pointer; font-weight: bold; color: #495057; font-size: 13px; }
+        .tab-btn.active { background: #007bff; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
@@ -82,7 +89,7 @@
             </div>
 
             <button type="button" onclick="submitWorksheet('published')" class="btn btn-green">Publish to Students</button>
-            <button type="button" onclick="submitWorksheet('draft')" class="btn btn-gray">Save as Draft (Library)</button>
+            <button type="button" onclick="submitWorksheet('draft')" class="btn btn-gray">Save to Library (Draft)</button>
         </form>
     </div>
 
@@ -96,13 +103,36 @@
             <h2>Active Student Work Library</h2>
             <div id="assignedList">Loading active assignments...</div>
         </div>
+
+        <!-- Categorized Library Section -->
         <div class="card">
-            <h2>Draft Library (Saved Worksheets)</h2>
-            <div id="libraryList">Loading draft items...</div>
+            <h2>Saved Draft Library</h2>
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('tab-flash', this)">Flash Anzan</button>
+                <button class="tab-btn" onclick="switchTab('tab-addition', this)">Addition</button>
+                <button class="tab-btn" onclick="switchTab('tab-subtraction', this)">Subtraction</button>
+                <button class="tab-btn" onclick="switchTab('tab-multiplication', this)">Multiplication</button>
+                <button class="tab-btn" onclick="switchTab('tab-division', this)">Division</button>
+                <button class="tab-btn" onclick="switchTab('tab-mixed', this)">Mixed</button>
+            </div>
+
+            <div id="tab-flash" class="tab-content active"></div>
+            <div id="tab-addition" class="tab-content"></div>
+            <div id="tab-subtraction" class="tab-content"></div>
+            <div id="tab-multiplication" class="tab-content"></div>
+            <div id="tab-division" class="tab-content"></div>
+            <div id="tab-mixed" class="tab-content"></div>
         </div>
     </div>
 
     <script>
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -177,10 +207,19 @@
                 const data = await res.json();
                 
                 const assignedContainer = document.getElementById('assignedList');
-                const libraryContainer = document.getElementById('libraryList');
-                
                 assignedContainer.innerHTML = '';
-                libraryContainer.innerHTML = '';
+
+                // Tab Containers
+                const tabs = {
+                    flash: document.getElementById('tab-flash'),
+                    addition: document.getElementById('tab-addition'),
+                    subtraction: document.getElementById('tab-subtraction'),
+                    multiplication: document.getElementById('tab-multiplication'),
+                    division: document.getElementById('tab-division'),
+                    mixed: document.getElementById('tab-mixed')
+                };
+
+                Object.values(tabs).forEach(t => t.innerHTML = '');
 
                 if (Array.isArray(data) && data.length > 0) {
                     data.forEach(item => {
@@ -207,17 +246,37 @@
                                     <strong>${item.title}</strong> <span style="color:#6c757d;">[${itemType}]</span> (${itemOp} - ${itemDigits})
                                 </div>
                                 <div class="actions">
-                                    <button class="btn-blue" onclick="publishItem('${item.id}')">Assign to Students Now</button>
+                                    <button class="btn-blue" onclick="publishItem('${item.id}')">Assign to Students</button>
                                     <button class="btn-red" onclick="deleteItem('${item.id}')">Delete</button>
                                 </div>
                             `;
-                            libraryContainer.appendChild(el);
+
+                            // Route to respective category tab
+                            if (itemType === 'Flash Anzan') {
+                                tabs.flash.appendChild(el);
+                            } else if (itemOp === 'Addition') {
+                                tabs.addition.appendChild(el);
+                            } else if (itemOp === 'Subtraction') {
+                                tabs.subtraction.appendChild(el);
+                            } else if (itemOp === 'Multiplication') {
+                                tabs.multiplication.appendChild(el);
+                            } else if (itemOp === 'Division') {
+                                tabs.division.appendChild(el);
+                            } else {
+                                tabs.mixed.appendChild(el);
+                            }
                         }
                     });
                 } else {
-                    assignedContainer.innerHTML = '<p style="color:#6c757d;">No active assignments in library.</p>';
-                    libraryContainer.innerHTML = '<p style="color:#6c757d;">No drafts saved.</p>';
+                    assignedContainer.innerHTML = '<p style="color:#6c757d;">No active assignments.</p>';
                 }
+
+                // Fill empty tab placeholders
+                Object.entries(tabs).forEach(([key, container]) => {
+                    if (container.children.length === 0) {
+                        container.innerHTML = `<p style="color:#6c757d;">No saved items in ${key}.</p>`;
+                    }
+                });
 
                 const gradeRes = await fetch('/api/grades');
                 const grades = await gradeRes.json();
