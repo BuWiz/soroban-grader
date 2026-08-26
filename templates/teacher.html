@@ -73,7 +73,7 @@
 
                 <div class="form-group">
                     <label for="w_flash_speed">Flash Speed (ms):</label>
-                    <input type="number" id="w_flash_speed" value="1500" step="100">
+                    <input type="number" id="w_flash_speed" value="3000" step="100">
                 </div>
             </div>
 
@@ -119,7 +119,7 @@
             const type = document.getElementById('w_type').value;
             const operation = document.getElementById('w_operation').value;
             const digits = document.getElementById('w_digits').value;
-            const flash_speed = parseInt(document.getElementById('w_flash_speed').value) || 1500;
+            const flash_speed = parseInt(document.getElementById('w_flash_speed').value) || 3000;
 
             if (!title) {
                 alert('Please enter an assignment title!');
@@ -141,6 +141,7 @@
                     alert(`Successfully ${statusType === 'published' ? 'published' : 'saved'} assignment!`);
                     document.getElementById('assignmentForm').reset();
                     document.getElementById('w_type').value = 'Flash Anzan';
+                    document.getElementById('w_flash_speed').value = '3000';
                     loadDashboard();
                 } else {
                     alert('Error from Server: ' + (result.message || JSON.stringify(result)));

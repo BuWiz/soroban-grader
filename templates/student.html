@@ -173,7 +173,6 @@
         let currentWorksheet = null;
         let activeProblems = [];
 
-        // Helper to convert comma-separated values like "5, -3, +8" into standard math "5 - 3 + 8"
         function sanitizeMathExpression(rawStr) {
             let str = rawStr.replace(/,/g, ' ');
             str = str.replace(/=/g, '');
@@ -264,7 +263,6 @@
                         const pDiv = document.createElement('div');
                         pDiv.className = 'problem-card';
                         
-                        // For Flash Anzan, hide the full equation text so students must watch screen
                         if (isFlash) {
                             pDiv.innerHTML = `
                                 <span>Problem ${index + 1}: &nbsp; <span style="color: var(--secondary-purple); font-size: 1.3rem;">[Watch Screen] =</span></span>
@@ -287,9 +285,8 @@
 
         function runFlashSequence() {
             const flashBox = document.getElementById('flashBox');
-            const speed = parseInt(currentWorksheet.flash_speed) || 1500;
+            const speed = parseInt(currentWorksheet.flash_speed) || 3000;
             
-            // Extract all signed numbers from sequence (e.g. "+8", "-6", "5")
             let sequence = [];
             activeProblems.forEach((prob) => {
                 const numbers = prob.sanitizedExpression.match(/([+-]?\s*\d+)/g) || [];
