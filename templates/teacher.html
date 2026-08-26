@@ -3,101 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <title>Teacher Dashboard - Soroban Grader</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f8f9fa; }
+        .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .btn { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-green { background: #28a745; color: white; }
+        .btn-gray { background: #6c757d; color: white; }
+        .file-box { border: 2px dashed #007bff; background: #eef6ff; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
+    </style>
 </head>
-<body class="bg-light p-4">
-<div class="container">
-    <h1 class="mb-4">Teacher Dashboard</h1>
+<body>
 
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">Create New Assignment</div>
-        <div class="card-body">
-            <form method="POST" action="/teacher" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label class="form-label">Title</label>
-                    <input type="text" name="title" class="form-control" required>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Assignment Type</label>
-                        <select name="assignment_type" class="form-select">
-                            <option value="standard">Standard Worksheet</option>
-                            <option value="flash">Flash Anzan</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Operation</label>
-                        <select name="operation" class="form-select">
-                            <option value="Addition">Addition</option>
-                            <option value="Subtraction">Subtraction</option>
-                            <option value="Multiplication">Multiplication</option>
-                            <option value="Division">Division</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Digits</label>
-                        <select name="digits" class="form-select">
-                            <option value="1-Digit">1-Digit</option>
-                            <option value="2-Digit">2-Digit</option>
-                            <option value="3-Digit">3-Digit</option>
-                            <option value="4-Digit">4-Digit</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Flash Speed (ms - Optional)</label>
-                    <input type="text" name="flash_speed" class="form-control" placeholder="1500">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Problems / Content</label>
-                    <textarea name="content" class="form-control" rows="4"></textarea>
-                </div>
-                <button type="submit" name="action" value="draft" class="btn btn-secondary">Save as Draft</button>
-                <button type="submit" name="action" value="publish" class="btn btn-success">Publish to Students</button>
-            </form>
+    <h1>Teacher Dashboard</h1>
+
+    <!-- Create / Upload Assignment Form -->
+    <div class="card">
+        <h2>Create or Upload Worksheet</h2>
+        <form id="assignmentForm" action="/teacher" method="POST" enctype="multipart/form-data">
+            <p>
+                <label>Title:</label><br>
+                <input type="text" name="title" placeholder="e.g. Addition Worksheet 1" style="width: 100%; padding: 8px;">
+            </p>
+
+            <div class="file-box">
+                <label><strong>Option A: Upload Worksheet File (.txt, .csv, .json)</strong></label><br><br>
+                <input type="file" name="file_upload" accept=".txt,.csv,.json">
+                <small style="display:block; margin-top: 5px; color: #555;">Uploading a file will auto-populate problem content.</small>
+            </div>
+
+            <p>
+                <label><strong>Option B: Type / Edit Problems Directly (One per line):</strong></label><br>
+                <textarea name="content" rows="5" placeholder="2+3&#10;5+4&#10;1+6" style="width: 100%;"></textarea>
+            </p>
+
+            <p>
+                <label>Type:</label>
+                <select name="type">
+                    <option value="Standard Worksheet">Standard Worksheet</option>
+                    <option value="Flash Anzan">Flash Anzan</option>
+                </select>
+                <label>Operation:</label>
+                <select name="operation">
+                    <option value="Addition">Addition</option>
+                    <option value="Subtraction">Subtraction</option>
+                </select>
+                <label>Digits:</label>
+                <select name="digits">
+                    <option value="1-Digit">1-Digit</option>
+                    <option value="2-Digit">2-Digit</option>
+                </select>
+            </p>
+
+            <button type="submit" name="action" value="published" class="btn btn-green">Publish to Students</button>
+            <button type="submit" name="action" value="draft" class="btn btn-gray">Save to Library (Draft)</button>
+        </form>
+    </div>
+
+    <div class="grid">
+        <!-- Active / Assigned Work -->
+        <div class="card">
+            <h2>Active Assigned Work</h2>
+            <div id="assignedList">Loading active assignments...</div>
+        </div>
+
+        <!-- Assignment Library / Saved Worksheets -->
+        <div class="card">
+            <h2>Assignment Library (Future Use)</h2>
+            <div id="libraryList">Loading library items...</div>
         </div>
     </div>
 
-    <!-- Submissions Log with Remedial Trigger -->
-    <div class="card mb-4">
-        <div class="card-header bg-dark text-white">Submissions Log</div>
-        <div class="card-body">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Date & Time</th>
-                        <th>Student</th>
-                        <th>Assignment</th>
-                        <th>Type</th>
-                        <th>Category</th>
-                        <th>Score</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for g in grades %}
-                    <tr>
-                        <td>{{ g.timestamp }}</td>
-                        <td>{{ g.student_name }}</td>
-                        <td>{{ g.worksheet_title }}</td>
-                        <td><span class="badge bg-secondary">{{ g.assignment_type }}</span></td>
-                        <td><span class="badge bg-info">{{ g.operation }}</span> <span class="badge bg-warning text-dark">{{ g.digits }}</span></td>
-                        <td><strong>{{ g.score }}</strong></td>
-                        <td>
-                            {% if g.score != '100%' and g.score != '10/10' %}
-                            <form method="POST" action="/generate_remedial/{{ g.id }}" style="display:inline;">
-                                <button type="submit" class="btn btn-sm btn-danger">Generate Remedial</button>
-                            </form>
-                            {% else %}
-                            <span class="text-success">Passed</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+    <script>
+        async function loadDashboard() {
+            const res = await fetch('/api/worksheets');
+            const data = await res.json();
+            
+            const assignedContainer = document.getElementById('assignedList');
+            const libraryContainer = document.getElementById('libraryList');
+            
+            assignedContainer.innerHTML = '';
+            libraryContainer.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                assignedContainer.innerHTML = '<p>No active assignments.</p>';
+                libraryContainer.innerHTML = '<p>No saved items in library.</p>';
+                return;
+            }
+
+            let publishedCount = 0;
+            let draftCount = 0;
+
+            data.forEach(item => {
+                const el = document.createElement('div');
+                el.style.borderBottom = '1px solid #ddd';
+                el.style.padding = '10px 0';
+
+                if (item.status === 'published' || !item.status) {
+                    publishedCount++;
+                    el.innerHTML = `<strong>${item.title}</strong> (${item.type} - ${item.operation})<br><small>Status: Active</small>`;
+                    assignedContainer.appendChild(el);
+                } else {
+                    draftCount++;
+                    el.innerHTML = `
+                        <strong>${item.title}</strong> (${item.type} - ${item.operation})<br>
+                        <button class="btn btn-green" onclick="publishItem('${item.id}')" style="padding: 4px 8px; font-size: 12px; margin-top: 5px;">Assign to Students Now</button>
+                    `;
+                    libraryContainer.appendChild(el);
+                }
+            });
+
+            if (publishedCount === 0) assignedContainer.innerHTML = '<p>No active assignments.</p>';
+            if (draftCount === 0) libraryContainer.innerHTML = '<p>No saved items in library.</p>';
+        }
+
+        async function publishItem(id) {
+            await fetch(`/api/worksheets/publish/${id}`, { method: 'POST' });
+            loadDashboard();
+        }
+
+        loadDashboard();
+    </script>
 </body>
 </html> 
