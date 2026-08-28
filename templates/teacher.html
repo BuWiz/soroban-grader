@@ -13,7 +13,6 @@
         .btn-blue { background: #007bff; color: white; padding: 4px 10px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; }
         .btn-red { background: #dc3545; color: white; padding: 4px 10px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; }
         
-        /* Drag and Drop Zone */
         .drop-zone {
             border: 3px dashed #007bff;
             background: #eef6ff;
@@ -24,16 +23,13 @@
             cursor: pointer;
             transition: background 0.2s, border-color 0.2s;
         }
-        .drop-zone.dragover {
-            background: #d0e4ff;
-            border-color: #0056b3;
-        }
+        .drop-zone.dragover { background: #d0e4ff; border-color: #0056b3; }
 
         .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
         .form-group label { font-weight: bold; margin-bottom: 5px; }
         .form-group select, .form-group input, .form-group textarea { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; }
         .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 15px; }
-        .grade-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .grade-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #fff; border-radius: 6px; margin-bottom: 8px; border-left: 5px solid #28a745; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
         .actions { display: flex; align-items: center; }
 
@@ -52,7 +48,6 @@
         <h2>Upload or Create Assignment</h2>
         <form id="assignmentForm">
 
-            <!-- Drag & Drop Zone -->
             <div id="dropZone" class="drop-zone" onclick="document.getElementById('w_file').click()">
                 <strong style="font-size: 1.1rem; color: #007bff;">📁 Drag & Drop Worksheet File Here</strong><br>
                 <small style="color: #666;">Supports .txt, .csv, .json files (Click to browse)</small>
@@ -111,6 +106,7 @@
         </form>
     </div>
 
+    <!-- Student Grades Section -->
     <div class="card">
         <h2>Student Grades & Automated Scoring</h2>
         <div id="gradesList">Loading student scores...</div>
@@ -143,7 +139,6 @@
     </div>
 
     <script>
-        // Drag and Drop Event Setup
         const dropZone = document.getElementById('dropZone');
 
         ['dragenter', 'dragover'].forEach(eventName => {
@@ -318,16 +313,30 @@
                     }
                 });
 
+                // FETCH & RENDER STUDENT GRADES
                 const gradeRes = await fetch('/api/grades');
                 const grades = await gradeRes.json();
                 const gradesContainer = document.getElementById('gradesList');
                 gradesContainer.innerHTML = '';
 
                 if (Array.isArray(grades) && grades.length > 0) {
-                    grades.forEach(g => {
+                    grades.reverse().forEach(g => {
+                        const score = g.score !== undefined ? g.score : 0;
+                        const total = g.total_problems || 0;
+                        const pct = total > 0 ? Math.round((score / total) * 100) : 0;
+                        const name = g.student_name || 'Leigha';
+
                         const gDiv = document.createElement('div');
                         gDiv.className = 'grade-item';
-                        gDiv.innerHTML = `<div><strong>${g.student_name || 'Student'}</strong> — Score: <b style="color:#28a745;">${g.score}/${g.total_problems}</b></div>`;
+                        gDiv.innerHTML = `
+                            <div>
+                                <strong style="font-size: 1.05rem; color:#1e293b;">👤 ${name}</strong><br>
+                                <small style="color:#64748b;">Submitted Grade Record</small>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-size: 1.2rem; font-weight: bold; color: #28a745;">${score} / ${total} (${pct}%)</span>
+                            </div>
+                        `;
                         gradesContainer.appendChild(gDiv);
                     });
                 } else {

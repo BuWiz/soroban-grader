@@ -94,7 +94,8 @@ def handle_grades():
             return jsonify({"status": "success", "data": result}), 201
         return jsonify({"status": "error", "message": "Failed to save grade"}), 500
     
-    result = supabase_request('grades?select=*&order=timestamp.desc')
+    # Try fetching all grades safely
+    result = supabase_request('grades?select=*')
     return jsonify(result if result is not None else [])
 
 if __name__ == '__main__':
