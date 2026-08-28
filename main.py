@@ -85,6 +85,11 @@ def publish_worksheet(id):
     result = supabase_request(f'worksheets?id=eq.{id}', method='PATCH', data={"status": "published"})
     return jsonify({"status": "success", "data": result})
 
+@app.route('/api/worksheets/complete/<id>', methods=['POST'])
+def complete_worksheet(id):
+    result = supabase_request(f'worksheets?id=eq.{id}', method='PATCH', data={"status": "completed"})
+    return jsonify({"status": "success", "data": result})
+
 @app.route('/api/grades', methods=['GET', 'POST'])
 def handle_grades():
     if request.method == 'POST':
@@ -107,4 +112,4 @@ def handle_grades():
     return jsonify(result if result is not None else [])
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(debug=True)
