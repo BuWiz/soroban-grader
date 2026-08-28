@@ -72,7 +72,7 @@ def handle_worksheets():
             return jsonify({"status": "success", "data": result}), 201
         return jsonify({"status": "error", "message": "Failed to save worksheet"}), 500
     
-    result = supabase_request('worksheets?select=*&order=created_at.desc')
+    result = supabase_request('worksheets?select=*')
     return jsonify(result if result is not None else [])
 
 @app.route('/api/worksheets/<id>', methods=['DELETE'])
@@ -89,12 +89,20 @@ def publish_worksheet(id):
 def handle_grades():
     if request.method == 'POST':
         data = request.get_json(silent=True) or request.form.to_dict()
-        result = supabase_request('grades', method='POST', data=data)
+        
+        payload = {
+            "worksheet_id": str(data.get('worksheet_id', '')),
+            "student_name": data.get('student_name', 'Leigha'),
+            "score": int(data.get('score', 0)),
+            "total_problems": int(data.get('total_problems', 0)),
+            "details": data.get('details', [])
+        }
+        
+        result = supabase_request('grades', method='POST', data=payload)
         if result is not None:
             return jsonify({"status": "success", "data": result}), 201
         return jsonify({"status": "error", "message": "Failed to save grade"}), 500
     
-    # Try fetching all grades safely
     result = supabase_request('grades?select=*')
     return jsonify(result if result is not None else [])
 

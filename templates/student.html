@@ -205,28 +205,26 @@
 
                 if (!worksheets || worksheets.length === 0) {
                     dueContainer.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No pending assignments due!</p>';
-                    return;
+                } else {
+                    const activeItems = worksheets.filter(w => w.status === 'published' || !w.status);
+
+                    if (activeItems.length === 0) {
+                        dueContainer.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No pending assignments due!</p>';
+                    } else {
+                        activeItems.forEach(item => {
+                            const div = document.createElement('div');
+                            div.className = 'task-item';
+                            div.innerHTML = `
+                                <div>
+                                    <strong style="font-size: 1.1rem; color: #1e293b;">${item.title}</strong><br>
+                                    <small style="color: #64748b;">${item.type || 'Standard'} • ${item.operation || 'N/A'} [${item.digits || 'N/A'}]</small>
+                                </div>
+                                <button class="btn-anime btn-start" onclick="startWorksheet('${item.id}')">Start Task 🎯</button>
+                            `;
+                            dueContainer.appendChild(div);
+                        });
+                    }
                 }
-
-                const activeItems = worksheets.filter(w => w.status === 'published' || !w.status);
-
-                if (activeItems.length === 0) {
-                    dueContainer.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No pending assignments due!</p>';
-                    return;
-                }
-
-                activeItems.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'task-item';
-                    div.innerHTML = `
-                        <div>
-                            <strong style="font-size: 1.1rem; color: #1e293b;">${item.title}</strong><br>
-                            <small style="color: #64748b;">${item.type || 'Standard'} • ${item.operation || 'N/A'} [${item.digits || 'N/A'}]</small>
-                        </div>
-                        <button class="btn-anime btn-start" onclick="startWorksheet('${item.id}')">Start Task 🎯</button>
-                    `;
-                    dueContainer.appendChild(div);
-                });
 
                 loadHistory();
 
@@ -257,7 +255,6 @@
                     document.getElementById('flashBox').style.display = isFlash ? 'flex' : 'none';
                     document.getElementById('startFlashBtn').style.display = isFlash ? 'block' : 'none';
                     
-                    // Hide problem answer inputs initially during Flash Anzan mode
                     document.getElementById('submissionForm').style.display = isFlash ? 'none' : 'block';
 
                     lines.forEach((line, index) => {
@@ -326,11 +323,8 @@
                         idx++;
                     } else {
                         clearInterval(interval);
-                        // Show ANSWER on screen in big letters
                         flashBox.innerText = 'ANSWER!';
                         flashBox.style.color = '#ff758c';
-                        
-                        // Reveal answer input fields below the screen
                         document.getElementById('submissionForm').style.display = 'block';
                     }
                 }, speed);
@@ -372,20 +366,36 @@
         }
 
         async function loadHistory() {
-            const res = await fetch('/api/grades');
-            const grades = await res.json();
-            const container = document.getElementById('completedList');
-            container.innerHTML = '';
+            try {
+                const res = await fetch('/api/grades');
+                const grades = await res.json();
+                const container = document.getElementById('completedList');
+                container.innerHTML = '';
 
-            if (grades && grades.length > 0) {
-                grades.forEach(g => {
-                    const div = document.createElement('div');
-                    div.className = 'task-item';
-                    div.innerHTML = `⭐ <strong>${g.student_name || 'Leigha'}</strong> — Score: <span style="color: var(--accent-green); font-size: 1.1rem; font-weight: bold;">${g.score}/${g.total_problems}</span>`;
-                    container.appendChild(div);
-                });
-            } else {
-                container.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No completed assignments yet.</p>';
+                if (Array.isArray(grades) && grades.length > 0) {
+                    grades.reverse().forEach(g => {
+                        const score = g.score !== undefined ? g.score : 0;
+                        const total = g.total_problems || 0;
+                        const pct = total > 0 ? Math.round((score / total) * 100) : 0;
+                        const name = g.student_name || 'Leigha';
+
+                        const div = document.createElement('div');
+                        div.className = 'task-item';
+                        div.innerHTML = `
+                            <div>
+                                🌸 <strong>${name}</strong> <span style="color: #64748b;">(Completed Task)</span>
+                            </div>
+                            <div>
+                                <span style="color: var(--accent-green); font-size: 1.1rem; font-weight: bold;">Score: ${score}/${total} (${pct}%)</span>
+                            </div>
+                        `;
+                        container.appendChild(div);
+                    });
+                } else {
+                    container.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No completed assignments yet.</p>';
+                }
+            } catch(e) {
+                console.error(e);
             }
         }
 
