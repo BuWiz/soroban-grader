@@ -2,7 +2,7 @@ import os
 import json
 import urllib.request
 import urllib.error
-from flask import Flask, render_template, request, jsonify, redirect
+from flask import Flask, render_template, request, jsonify, make_response
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
@@ -33,6 +33,14 @@ def supabase_request(endpoint, method="GET", data=None):
     except Exception as e:
         print(f"Supabase Connection Error: {str(e)}")
         return None
+
+# Prevent browser/Vercel caching on all responses
+@app.after_request
+def add_no_cache_headers(response):
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 # ==================== PAGE ROUTES ====================
 
