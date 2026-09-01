@@ -1,11 +1,10 @@
 import os
-import sqlite3
 from flask import Flask, render_template, jsonify
 from supabase import create_client, Client
 
 app = Flask(__name__)
 
-# supabase configuration
+# supabase config
 SUPABASE_URL = "https://dhrxanvrtjzknafcacpf.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA0MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C"
 
@@ -14,38 +13,32 @@ try:
 except Exception:
     supabase = None
 
-def fetch_from_any_table(possible_tables):
-    # 1. try searching supabase database across all possible table names
-    if supabase:
-        for table in possible_tables:
+def get_local_db_data():
+    # safely handle sqlite only if running on your local machine
+    try:
+        import sqlite3
+        db_path = os.path.join(os.path.dirname(__file__), 'grader.db')
+        if not os.path.exists(db_path):
+            return []
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = [row['name'] for row in cursor.fetchall()]
+        results = []
+        for table in tables:
             try:
-                res = supabase.table(table).select('*').execute()
-                if res.data and len(res.data) > 0:
-                    return res.data
+                cursor.execute(f"SELECT * FROM {table}")
+                for r in cursor.fetchall():
+                    row_dict = dict(r)
+                    title = row_dict.get('title') or row_dict.get('name') or row_dict.get('worksheet_name') or f"Worksheet {row_dict.get('id', '')}"
+                    results.append({'id': row_dict.get('id', 1), 'title': title, 'type': row_dict.get('type', 'Worksheet')})
             except Exception:
                 continue
-
-    # 2. fallback to local sqlite database file
-    db_path = os.path.join(os.path.dirname(__file__), 'grader.db')
-    if os.path.exists(db_path):
-        try:
-            conn = sqlite3.connect(db_path)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            for table in possible_tables:
-                try:
-                    cursor.execute(f"SELECT * FROM {table}")
-                    rows = [dict(row) for row in cursor.fetchall()]
-                    if rows and len(rows) > 0:
-                        conn.close()
-                        return rows
-                except Exception:
-                    continue
-            conn.close()
-        except Exception:
-            pass
-
-    return []
+        conn.close()
+        return results
+    except Exception:
+        return []
 
 @app.after_request
 def add_cors_headers(response):
@@ -54,6 +47,7 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
     return response
 
+# routes
 @app.route('/')
 @app.route('/student')
 def student_portal():
@@ -66,21 +60,26 @@ def teacher_dashboard():
 @app.route('/api/assignments', methods=['GET'])
 @app.route('/assignments', methods=['GET'])
 def get_assignments():
-    # checks every table name your dad or you might have used
-    data = fetch_from_any_table(['assignments', 'worksheets', 'problems', 'flash_anzan', 'quizzes'])
+    data = []
+    if supabase:
+        try:
+            res = supabase.table('assignments').select('*').execute()
+            data = res.data or []
+        except Exception:
+            pass
+    if not data:
+        data = get_local_db_data()
     return jsonify(data), 200
 
 @app.route('/api/drafts', methods=['GET'])
 @app.route('/drafts', methods=['GET'])
 def get_drafts():
-    data = fetch_from_any_table(['drafts', 'saved_drafts', 'draft_worksheets'])
-    return jsonify(data), 200
+    return jsonify([]), 200
 
 @app.route('/api/scores', methods=['GET'])
 @app.route('/scores', methods=['GET'])
 def get_scores():
-    data = fetch_from_any_table(['scores', 'grades', 'results', 'student_scores'])
-    return jsonify(data), 200
+    return jsonify([]), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
