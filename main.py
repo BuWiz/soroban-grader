@@ -97,6 +97,7 @@ def handle_grades():
         
         payload = {
             "worksheet_id": str(data.get('worksheet_id', '')),
+            "worksheet_title": data.get('worksheet_title', 'Worksheet'),
             "student_name": data.get('student_name', 'Leigha'),
             "score": int(data.get('score', 0)),
             "total_problems": int(data.get('total_problems', 0)),

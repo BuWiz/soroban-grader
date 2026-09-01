@@ -203,10 +203,11 @@
                 const dueContainer = document.getElementById('dueList');
                 dueContainer.innerHTML = '';
 
-                if (!worksheets || worksheets.length === 0) {
+                if (!Array.isArray(worksheets) || worksheets.length === 0) {
                     dueContainer.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No pending assignments due!</p>';
                 } else {
-                    const activeItems = worksheets.filter(w => w.status === 'published' || !w.status);
+                    // Filter out assignments that are completed
+                    const activeItems = worksheets.filter(w => w.status === 'published' || (!w.status && w.status !== 'completed'));
 
                     if (activeItems.length === 0) {
                         dueContainer.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No pending assignments due!</p>';
@@ -299,24 +300,7 @@
 
         function runFlashSequence() {
             const flashBox = document.getElementById('flashBox');
-            const startBtn = document.getElementById('startFlashBtn');
-            const speed = parseInt(currentWorksheet.flash_speed) || 3000;
-            
-            startBtn.style.display = 'none';
-
-            let sequence = [];
-            activeProblems.forEach((prob) => {
-                const numbers = prob.sanitizedExpression.match(/([+-]?\s*\d+)/g) || [];
-                numbers.forEach(n => sequence.push(n.replace(/\s+/g, '')));
-            });
-
-            let idx = 0;
-            flashBox.innerText = 'READY';
-            setTimeout(() => { flashBox.innerText = '3...'; }, 600);
-            setTimeout(() => { flashBox.innerText = '2...'; }, 1200);
-            setTimeout(() => { flashBox.innerText = '1...'; }, 1800);
-
-            setTimeout(() => {
+            const startBtn = document.getElementById('startFlashBtn'
                 const interval = setInterval(() => {
                     if (idx < sequence.length) {
                         flashBox.innerText = sequence[idx];
@@ -349,23 +333,34 @@
                 });
             });
 
-            await fetch('/api/grades', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    worksheet_id: currentWorksheet.id,
-                    student_name: 'Leigha',
-                    score: score,
-                    total_problems: activeProblems.length,
-                    details: details
-                })
-            });
+            try {
+                // Save Grade with Worksheet Title included
+                await fetch('/api/grades', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        worksheet_id: String(currentWorksheet.id),
+                        worksheet_title: currentWorksheet.title || 'Assignment',
+                        student_name: 'Leigha',
+                        score: score,
+                        total_problems: activeProblems.length,
+                        details: details
+                    })
+                });
+
+                // Set status to 'completed' so it is removed from Due list automatically
+                await fetch(`/api/worksheets/complete/${currentWorksheet.id}`, {
+                    method: 'POST'
+                });
+            } catch (err) {
+                console.error('Submission error:', err);
+            }
 
             alert(`🎉 Great job Leigha! You scored ${score} out of ${activeProblems.length}.`);
             returnToHome();
         }
 
-        async function loadHistory() {
+        async fuion loadHistory() {
             try {
                 const res = await fetch('/api/grades');
                 const grades = await res.json();
@@ -373,23 +368,24 @@
                 container.innerHTML = '';
 
                 if (Array.isArray(grades) && grades.length > 0) {
-                    grades.reverse().forEach(g => {
+                    grades.slice().reverse().forEach(g => {
                         const score = g.score !== undefined ? g.score : 0;
                         const total = g.total_problems || 0;
                         const pct = total > 0 ? Math.round((score / total) * 100) : 0;
                         const name = g.student_name || 'Leigha';
+                        const title = g.worksheet_title || 'Assignment';
 
                         const div = document.createElement('div');
                         div.className = 'task-item';
                         div.innerHTML = `
                             <div>
-                                🌸 <strong>${name}</strong> <span style="color: #64748b;">(Completed Task)</span>
+                                🌸 <strong>${title}</strong> <span style="color: #64748b;">(${name})</span>
                             </div>
                             <div>
                                 <span style="color: var(--accent-green); font-size: 1.1rem; font-weight: bold;">Score: ${score}/${total} (${pct}%)</span>
                             </div>
                         `;
-                        container.appendChild(div);
+                        conter.appendChild(div);
                     });
                 } else {
                     container.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No completed assignments yet.</p>';
@@ -402,4 +398,4 @@
         loadStudentPortal();
     </script>
 </body>
-</html> 
+</html>

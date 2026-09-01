@@ -4,14 +4,6 @@
     <meta charset="UTF-8">
     <title>Teacher Dashboard - Soroban Grader</title>
     <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f8f9fa; }
-        .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .btn { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-green { background: #28a745; color: white; }
-        .btn-gray { background: #6c757d; color: white; }
-        .btn-blue { background: #007bff; color: white; padding: 4px 10px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; }
-        .btn-red { background: #dc3545; color: white; padding: 4px 10px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; }
         
         .drop-zone {
             border: 3px dashed #007bff;
@@ -25,12 +17,7 @@
         }
         .drop-zone.dragover { background: #d0e4ff; border-color: #0056b3; }
 
-        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
-        .form-group label { font-weight: bold; margin-bottom: 5px; }
-        .form-group select, .form-group input, .form-group textarea { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; }
-        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 15px; }
-        .grade-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #fff; border-radius: 6px; margin-bottom: 8px; border-left: 5px solid #28a745; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .formify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
         .actions { display: flex; align-items: center; }
 
         .tab-bar { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid #ddd; overflow-x: auto; padding-bottom: 5px; }
@@ -85,11 +72,6 @@
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label for="w_digits">Digits:</label>
-                    <select id="w_digits">
-                        <option value="1-Digit">1-Digit</option>
-                        <option value="2-Digit">2-Digit</option>
                         <option value="3-Digit">3-Digit</option>
                         <option value="4-Digit">4-Digit</option>
                     </select>
@@ -277,7 +259,7 @@
                                 </div>
                             `;
                             assignedContainer.appendChild(el);
-                        } else {
+                        } else if (item.status === 'draft') {
                             el.innerHTML = `
                                 <div>
                                     <strong>${item.title}</strong> <span style="color:#6c757d;">[${itemType}]</span> (${itemOp} - ${itemDigits})
@@ -290,13 +272,7 @@
 
                             if (itemType === 'Flash Anzan') {
                                 tabs.flash.appendChild(el);
-                            } else if (itemOp === 'Addition') {
-                                tabs.addition.appendChild(el);
-                            } else if (itemOp === 'Subtraction') {
-                                tabs.subtraction.appendChild(el);
-                            } else if (itemOp === 'Multiplication') {
-                                tabs.multiplication.appendChild(el);
-                            } else if (itemOp === 'Division') {
+                            } else p === 'Division') {
                                 tabs.division.appendChild(el);
                             } else {
                                 tabs.mixed.appendChild(el);
@@ -313,7 +289,7 @@
                     }
                 });
 
-                // FETCH & RENDER STUDENT GRADES
+                // FETCH & RENDER STUDENT GRADES WITH WORKSHEET TITLES
                 const gradeRes = await fetch('/api/grades');
                 const grades = await gradeRes.json();
                 const gradesContainer = document.getElementById('gradesList');
@@ -325,13 +301,14 @@
                         const total = g.total_problems || 0;
                         const pct = total > 0 ? Math.round((score / total) * 100) : 0;
                         const name = g.student_name || 'Leigha';
+                        const title = g.worksheet_title || 'Assignment';
 
                         const gDiv = document.createElement('div');
                         gDiv.className = 'grade-item';
                         gDiv.innerHTML = `
                             <div>
-                                <strong style="font-size: 1.05rem; color:#1e293b;">👤 ${name}</strong><br>
-                                <small style="color:#64748b;">Submitted Grade Record</small>
+                                <strong style="font-size: 1.05rem; color:#1e293b;">📌 ${title}</strong><br>
+                                <small style="color:#64748b;">Completed by: ${name}</small>
                             </div>
                             <div style="text-align: right;">
                                 <span style="font-size: 1.2rem; font-weight: bold; color: #28a745;">${score} / ${total} (${pct}%)</span>
@@ -348,4 +325,4 @@
         loadDashboard();
     </script>
 </body>
-</html> 
+</html>
