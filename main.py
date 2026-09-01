@@ -1,124 +1,86 @@
 import os
-import json
-import urllib.request
-import urllib.error
-from flask import Flask, render_template, request, jsonify, make_response
+import sqlite3
+from flask import Flask, render_template, jsonify
+from supabase import create_client, Client
 
-app = Flask(__name__, template_folder='templates', static_folder='static')
+app = Flask(__name__)
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip('/')
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+# supabase configuration
+SUPABASE_URL = "https://dhrxanvrtjzknafcacpf.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA0MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C"
 
-def supabase_request(endpoint, method="GET", data=None):
-    """Helper function to execute REST API requests to Supabase."""
-    url = f"{SUPABASE_URL}/rest/v1/{endpoint}"
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=representation"
-    }
-    
-    payload = json.dumps(data).encode('utf-8') if data else None
-    req = urllib.request.Request(url, data=payload, headers=headers, method=method)
-    
-    try:
-        with urllib.request.urlopen(req) as response:
-            res_body = response.read().decode('utf-8')
-            return json.loads(res_body) if res_body else []
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode('utf-8')
-        print(f"Supabase HTTP Error ({e.code}): {error_body}")
-        return None
-    except Exception as e:
-        print(f"Supabase Connection Error: {str(e)}")
-        return None
+try:
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception:
+    supabase = None
 
-# Prevent browser/Vercel caching on all responses
+def fetch_from_any_table(possible_tables):
+    # 1. try searching supabase database across all possible table names
+    if supabase:
+        for table in possible_tables:
+            try:
+                res = supabase.table(table).select('*').execute()
+                if res.data and len(res.data) > 0:
+                    return res.data
+            except Exception:
+                continue
+
+    # 2. fallback to local sqlite database file
+    db_path = os.path.join(os.path.dirname(__file__), 'grader.db')
+    if os.path.exists(db_path):
+        try:
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            for table in possible_tables:
+                try:
+                    cursor.execute(f"SELECT * FROM {table}")
+                    rows = [dict(row) for row in cursor.fetchall()]
+                    if rows and len(rows) > 0:
+                        conn.close()
+                        return rows
+                except Exception:
+                    continue
+            conn.close()
+        except Exception:
+            pass
+
+    return []
+
 @app.after_request
-def add_no_cache_headers(response):
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
     return response
 
-# ==================== PAGE ROUTES ====================
-
 @app.route('/')
-def index():
-    return render_template('student.html')
-
-@app.route('/teacher', methods=['GET'])
-@app.route('/teacher.html', methods=['GET'])
-def teacher_portal():
-    return render_template('teacher.html')
-
-@app.route('/student', methods=['GET'])
-@app.route('/student.html', methods=['GET'])
+@app.route('/student')
 def student_portal():
     return render_template('student.html')
 
-# ==================== API ENDPOINTS ====================
+@app.route('/teacher')
+def teacher_dashboard():
+    return render_template('teacher.html')
 
-@app.route('/api/worksheets', methods=['GET', 'POST'])
-def handle_worksheets():
-    if request.method == 'POST':
-        data = request.get_json(silent=True) or request.form.to_dict()
-        
-        payload = {
-            "title": data.get('title', 'Untitled Worksheet').strip(),
-            "type": data.get('type', 'Flash Anzan'),
-            "operation": data.get('operation', 'Addition'),
-            "digits": data.get('digits', '1-Digit'),
-            "content": data.get('content', '').strip(),
-            "flash_speed": int(data.get('flash_speed', 3000)) if str(data.get('flash_speed', 3000)).isdigit() else 3000,
-            "status": data.get('status', 'published')
-        }
-        
-        result = supabase_request('worksheets', method='POST', data=payload)
-        if result is not None:
-            return jsonify({"status": "success", "data": result}), 201
-        return jsonify({"status": "error", "message": "Failed to save worksheet"}), 500
-    
-    result = supabase_request('worksheets?select=*')
-    return jsonify(result if result is not None else [])
+@app.route('/api/assignments', methods=['GET'])
+@app.route('/assignments', methods=['GET'])
+def get_assignments():
+    # checks every table name your dad or you might have used
+    data = fetch_from_any_table(['assignments', 'worksheets', 'problems', 'flash_anzan', 'quizzes'])
+    return jsonify(data), 200
 
-@app.route('/api/worksheets/<id>', methods=['DELETE'])
-def delete_worksheet(id):
-    result = supabase_request(f'worksheets?id=eq.{id}', method='DELETE')
-    return jsonify({"status": "success", "data": result})
+@app.route('/api/drafts', methods=['GET'])
+@app.route('/drafts', methods=['GET'])
+def get_drafts():
+    data = fetch_from_any_table(['drafts', 'saved_drafts', 'draft_worksheets'])
+    return jsonify(data), 200
 
-@app.route('/api/worksheets/publish/<id>', methods=['POST'])
-def publish_worksheet(id):
-    result = supabase_request(f'worksheets?id=eq.{id}', method='PATCH', data={"status": "published"})
-    return jsonify({"status": "success", "data": result})
-
-@app.route('/api/worksheets/complete/<id>', methods=['POST'])
-def complete_worksheet(id):
-    result = supabase_request(f'worksheets?id=eq.{id}', method='PATCH', data={"status": "completed"})
-    return jsonify({"status": "success", "data": result})
-
-@app.route('/api/grades', methods=['GET', 'POST'])
-def handle_grades():
-    if request.method == 'POST':
-        data = request.get_json(silent=True) or request.form.to_dict()
-        
-        payload = {
-            "worksheet_id": str(data.get('worksheet_id', '')),
-            "worksheet_title": data.get('worksheet_title', 'Worksheet'),
-            "student_name": data.get('student_name', 'Leigha'),
-            "score": int(data.get('score', 0)),
-            "total_problems": int(data.get('total_problems', 0)),
-            "details": data.get('details', [])
-        }
-        
-        result = supabase_request('grades', method='POST', data=payload)
-        if result is not None:
-            return jsonify({"status": "success", "data": result}), 201
-        return jsonify({"status": "error", "message": "Failed to save grade"}), 500
-    
-    result = supabase_request('grades?select=*')
-    return jsonify(result if result is not None else [])
+@app.route('/api/scores', methods=['GET'])
+@app.route('/scores', methods=['GET'])
+def get_scores():
+    data = fetch_from_any_table(['scores', 'grades', 'results', 'student_scores'])
+    return jsonify(data), 200
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000)

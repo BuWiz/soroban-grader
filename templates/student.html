@@ -178,11 +178,11 @@
     </div>
 
     <script>
-        let currentWorksheet = null;
-        let activeProblems = [];
+        var currentWorksheet = null;
+        var activeProblems = [];
 
         function sanitizeMathExpression(rawStr) {
-            let str = rawStr.replace(/,/g, ' ');
+            var str = rawStr.replace(/,/g, ' ');
             str = str.replace(/=/g, '');
             str = str.replace(/\+/g, ' + ');
             str = str.replace(/-/g, ' - ');
@@ -195,73 +195,84 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        async function loadStudentPortal() {
-            try {
-                const res = await fetch('/api/worksheets');
-                const worksheets = await res.json();
-                
-                const dueContainer = document.getElementById('dueList');
-                dueContainer.innerHTML = '';
-
-                if (!Array.isArray(worksheets) || worksheets.length === 0) {
-                    dueContainer.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No pending assignments due!</p>';
-                } else {
-                    // Filter out assignments that are completed
-                    const activeItems = worksheets.filter(w => w.status === 'published' || (!w.status && w.status !== 'completed'));
-
-                    if (activeItems.length === 0) {
+        function loadStudentPortal() {
+            var dueContainer = document.getElementById('dueList');
+            fetch('/api/worksheets')
+                .then(function(res) { return res.json(); })
+                .then(function(worksheets) {
+                    dueContainer.innerHTML = '';
+                    if (!Array.isArray(worksheets) || worksheets.length === 0) {
                         dueContainer.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No pending assignments due!</p>';
                     } else {
-                        activeItems.forEach(item => {
-                            const div = document.createElement('div');
-                            div.className = 'task-item';
-                            div.innerHTML = `
-                                <div>
-                                    <strong style="font-size: 1.1rem; color: #1e293b;">${item.title}</strong><br>
-                                    <small style="color: #64748b;">${item.type || 'Standard'} • ${item.operation || 'N/A'} [${item.digits || 'N/A'}]</small>
-                                </div>
-                                <button class="btn-anime btn-start" onclick="startWorksheet('${item.id}')">Start Task 🎯</button>
-                            `;
-                            dueContainer.appendChild(div);
-                        });
+                        var activeItems = [];
+                        for (var i = 0; i < worksheets.length; i++) {
+                            var w = worksheets[i];
+                            if (w.status === 'published' || !w.status) {
+                                activeItems.push(w);
+                            }
+                        }
+
+                        if (activeItems.length === 0) {
+                            dueContainer.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No pending assignments due!</p>';
+                        } else {
+                            for (var j = 0; j < activeItems.length; j++) {
+                                var item = activeItems[j];
+                                var div = document.createElement('div');
+                                div.className = 'task-item';
+                                div.innerHTML = '<div><strong style="font-size: 1.1rem; color: #1e293b;">' + (item.title || 'Assignment') + '</strong><br>' +
+                                    '<small style="color: #64748b;">' + (item.type || 'Standard') + ' • ' + (item.operation || 'N/A') + ' [' + (item.digits || 'N/A') + ']</small></div>' +
+                                    '<button class="btn-anime btn-start" onclick="startWorksheet(\'' + item.id + '\')">Start Task 🎯</button>';
+                                dueContainer.appendChild(div);
+                            }
+                        }
                     }
-                }
-
-                loadHistory();
-
-            } catch (err) {
-                console.error(err);
-                document.getElementById('dueList').innerHTML = '<p style="color: #ef4444;">Error loading assignments.</p>';
-            }
+                    loadHistory();
+                })
+                .catch(function(err) {
+                    console.error('Error loading worksheets:', err);
+                    dueContainer.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No pending assignments due!</p>';
+                    loadHistory();
+                });
         }
 
         function startWorksheet(id) {
             fetch('/api/worksheets')
-                .then(res => res.json())
-                .then(worksheets => {
-                    const item = worksheets.find(w => String(w.id) === String(id));
+                .then(function(res) { return res.json(); })
+                .then(function(worksheets) {
+                    var item = null;
+                    for (var i = 0; i < worksheets.length; i++) {
+                        if (String(worksheets[i].id) === String(id)) {
+                            item = worksheets[i];
+                            break;
+                        }
+                    }
                     if (!item) return;
 
                     currentWorksheet = item;
                     document.getElementById('activeTitle').innerText = item.title || 'Assignment';
-                    document.getElementById('activeMeta').innerText = `Type: ${item.type || 'Standard'} | Operation: ${item.operation || 'N/A'}`;
+                    document.getElementById('activeMeta').innerText = 'Type: ' + (item.type || 'Standard') + ' | Operation: ' + (item.operation || 'N/A');
 
-                    const container = document.getElementById('problemsContainer');
+                    var container = document.getElementById('problemsContainer');
                     container.innerHTML = '';
 
-                    const lines = (item.content || '').split(/[\r\n]+/).filter(l => l.trim() !== '');
+                    var rawLines = (item.content || '').split(/[\r\n]+/);
+                    var lines = [];
+                    for (var k = 0; k < rawLines.length; k++) {
+                        if (rawLines[k].trim() !== '') {
+                            lines.push(rawLines[k].trim());
+                        }
+                    }
                     activeProblems = [];
 
-                    const isFlash = item.type === 'Flash Anzan';
+                    var isFlash = item.type === 'Flash Anzan';
                     document.getElementById('flashBox').style.display = isFlash ? 'flex' : 'none';
                     document.getElementById('startFlashBtn').style.display = isFlash ? 'block' : 'none';
-                    
                     document.getElementById('submissionForm').style.display = isFlash ? 'none' : 'block';
 
-                    lines.forEach((line, index) => {
-                        const rawLine = line.trim();
-                        const mathExpression = sanitizeMathExpression(rawLine);
-                        let expectedAnswer = null;
+                    for (var index = 0; index < lines.length; index++) {
+                        var rawLine = lines[index];
+                        var mathExpression = sanitizeMathExpression(rawLine);
+                        var expectedAnswer = null;
 
                         try {
                             expectedAnswer = Function('"use strict"; return (' + mathExpression + ')')();
@@ -275,23 +286,19 @@
                             correctAnswer: expectedAnswer
                         });
 
-                        const pDiv = document.createElement('div');
+                        var pDiv = document.createElement('div');
                         pDiv.className = 'problem-card';
                         
                         if (isFlash) {
-                            pDiv.innerHTML = `
-                                <span>Problem ${index + 1} Answer:</span>
-                                <input type="number" id="answer_${index}" required placeholder="Type Answer">
-                            `;
+                            pDiv.innerHTML = '<span>Problem ' + (index + 1) + ' Answer:</span>' +
+                                '<input type="number" id="answer_' + index + '" required placeholder="Type Answer">';
                         } else {
-                            pDiv.innerHTML = `
-                                <span>Problem ${index + 1}: &nbsp; <span style="color: var(--secondary-purple); font-size: 1.3rem;">${rawLine} =</span></span>
-                                <input type="number" id="answer_${index}" required placeholder="?">
-                            `;
+                            pDiv.innerHTML = '<span>Problem ' + (index + 1) + ': &nbsp; <span style="color: var(--secondary-purple); font-size: 1.3rem;">' + rawLine + ' =</span></span>' +
+                                '<input type="number" id="answer_' + index + '" required placeholder="?">';
                         }
                         
                         container.appendChild(pDiv);
-                    });
+                    }
 
                     document.getElementById('worksheetView').style.display = 'block';
                     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -299,9 +306,28 @@
         }
 
         function runFlashSequence() {
-            const flashBox = document.getElementById('flashBox');
-            const startBtn = document.getElementById('startFlashBtn'
-                const interval = setInterval(() => {
+            var flashBox = document.getElementById('flashBox');
+            var startBtn = document.getElementById('startFlashBtn');
+            var speed = parseInt(currentWorksheet.flash_speed) || 3000;
+            
+            startBtn.style.display = 'none';
+
+            var sequence = [];
+            for (var i = 0; i < activeProblems.length; i++) {
+                var numbers = activeProblems[i].sanitizedExpression.match(/([+-]?\s*\d+)/g) || [];
+                for (var j = 0; j < numbers.length; j++) {
+                    sequence.push(numbers[j].replace(/\s+/g, ''));
+                }
+            }
+
+            var idx = 0;
+            flashBox.innerText = 'READY';
+            setTimeout(function() { flashBox.innerText = '3...'; }, 600);
+            setTimeout(function() { flashBox.innerText = '2...'; }, 1200);
+            setTimeout(function() { flashBox.innerText = '1...'; }, 1800);
+
+            setTimeout(function() {
+                var interval = setInterval(function() {
                     if (idx < sequence.length) {
                         flashBox.innerText = sequence[idx];
                         idx++;
@@ -315,14 +341,16 @@
             }, 2400);
         }
 
-        async function submitWorksheet() {
-            let score = 0;
-            const details = [];
+        function submitWorksheet() {
+            var score = 0;
+            var details = [];
 
-            activeProblems.forEach((prob, idx) => {
-                const val = document.getElementById(`answer_${idx}`).value;
-                const studentAns = val !== '' ? parseFloat(val) : null;
-                const isCorrect = studentAns === prob.correctAnswer;
+            for (var idx = 0; idx < activeProblems.length; idx++) {
+                var prob = activeProblems[idx];
+                var inputEl = document.getElementById('answer_' + idx);
+                var val = inputEl ? inputEl.value : '';
+                var studentAns = val !== '' ? parseFloat(val) : null;
+                var isCorrect = studentAns === prob.correctAnswer;
                 if (isCorrect) score++;
 
                 details.push({
@@ -331,68 +359,64 @@
                     correctAnswer: prob.correctAnswer,
                     isCorrect: isCorrect
                 });
-            });
-
-            try {
-                // Save Grade with Worksheet Title included
-                await fetch('/api/grades', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        worksheet_id: String(currentWorksheet.id),
-                        worksheet_title: currentWorksheet.title || 'Assignment',
-                        student_name: 'Leigha',
-                        score: score,
-                        total_problems: activeProblems.length,
-                        details: details
-                    })
-                });
-
-                // Set status to 'completed' so it is removed from Due list automatically
-                await fetch(`/api/worksheets/complete/${currentWorksheet.id}`, {
-                    method: 'POST'
-                });
-            } catch (err) {
-                console.error('Submission error:', err);
             }
 
-            alert(`🎉 Great job Leigha! You scored ${score} out of ${activeProblems.length}.`);
-            returnToHome();
+            fetch('/api/grades', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    worksheet_id: String(currentWorksheet.id),
+                    worksheet_title: currentWorksheet.title || 'Assignment',
+                    student_name: 'Leigha',
+                    score: score,
+                    total_problems: activeProblems.length,
+                    details: details
+                })
+            })
+            .then(function() {
+                return fetch('/api/worksheets/complete/' + currentWorksheet.id, { method: 'POST' });
+            })
+            .then(function() {
+                alert('🎉 Great job Leigha! You scored ' + score + ' out of ' + activeProblems.length + '.');
+                returnToHome();
+            })
+            .catch(function(err) {
+                console.error('Submission error:', err);
+                alert('🎉 Great job Leigha! You scored ' + score + ' out of ' + activeProblems.length + '.');
+                returnToHome();
+            });
         }
 
-        async fuion loadHistory() {
-            try {
-                const res = await fetch('/api/grades');
-                const grades = await res.json();
-                const container = document.getElementById('completedList');
-                container.innerHTML = '';
+        function loadHistory() {
+            var container = document.getElementById('completedList');
+            fetch('/api/grades')
+                .then(function(res) { return res.json(); })
+                .then(function(grades) {
+                    container.innerHTML = '';
+                    if (Array.isArray(grades) && grades.length > 0) {
+                        var reversedGrades = grades.slice().reverse();
+                        for (var i = 0; i < reversedGrades.length; i++) {
+                            var g = reversedGrades[i];
+                            var score = g.score !== undefined ? g.score : 0;
+                            var total = g.total_problems || 0;
+                            var pct = total > 0 ? Math.round((score / total) * 100) : 0;
+                            var name = g.student_name || 'Leigha';
+                            var title = g.worksheet_title || 'Assignment';
 
-                if (Array.isArray(grades) && grades.length > 0) {
-                    grades.slice().reverse().forEach(g => {
-                        const score = g.score !== undefined ? g.score : 0;
-                        const total = g.total_problems || 0;
-                        const pct = total > 0 ? Math.round((score / total) * 100) : 0;
-                        const name = g.student_name || 'Leigha';
-                        const title = g.worksheet_title || 'Assignment';
-
-                        const div = document.createElement('div');
-                        div.className = 'task-item';
-                        div.innerHTML = `
-                            <div>
-                                🌸 <strong>${title}</strong> <span style="color: #64748b;">(${name})</span>
-                            </div>
-                            <div>
-                                <span style="color: var(--accent-green); font-size: 1.1rem; font-weight: bold;">Score: ${score}/${total} (${pct}%)</span>
-                            </div>
-                        `;
-                        conter.appendChild(div);
-                    });
-                } else {
+                            var div = document.createElement('div');
+                            div.className = 'task-item';
+                            div.innerHTML = '<div>🌸 <strong>' + title + '</strong> <span style="color: #64748b;">(' + name + ')</span></div>' +
+                                '<div><span style="color: var(--accent-green); font-size: 1.1rem; font-weight: bold;">Score: ' + score + '/' + total + ' (' + pct + '%)</span></div>';
+                            container.appendChild(div);
+                        }
+                    } else {
+                        container.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No completed assignments yet.</p>';
+                    }
+                })
+                .catch(function(e) {
+                    console.error('Error loading grades history:', e);
                     container.innerHTML = '<p style="color: #94a3b8; font-weight: 700;">No completed assignments yet.</p>';
-                }
-            } catch(e) {
-                console.error(e);
-            }
+                });
         }
 
         loadStudentPortal();
