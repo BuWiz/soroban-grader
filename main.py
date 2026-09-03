@@ -49,6 +49,8 @@ def fetch_local_db_worksheets(filter_status=None):
                     title = row_dict.get('title') or row_dict.get('name') or f"Worksheet {row_dict.get('id', '')}"
                     category = row_dict.get('category') or 'Division'
                     is_assigned = row_dict.get('is_assigned', 1)
+                    is_flash = row_dict.get('is_flash', 0)
+                    flash_speed_ms = row_dict.get('flash_speed_ms', 1500)
                     
                     item = {
                         'id': row_dict.get('id', len(worksheets) + 1),
@@ -56,6 +58,8 @@ def fetch_local_db_worksheets(filter_status=None):
                         'category': category,
                         'type': category,
                         'is_assigned': is_assigned,
+                        'is_flash': is_flash or (1 if category.lower() == 'flash anzan' else 0),
+                        'flash_speed_ms': flash_speed_ms,
                         'problems': parsed_problems
                     }
 
@@ -148,7 +152,7 @@ TEACHER_DASHBOARD_COMPLETE = """
             color: var(--text-dark);
         }
 
-        input[type="text"], textarea, select {
+        input[type="text"], input[type="number"], textarea, select {
             width: 100%;
             padding: 12px;
             border: 2px solid var(--border);
@@ -218,7 +222,6 @@ TEACHER_DASHBOARD_COMPLETE = """
             margin-bottom: 25px;
         }
 
-        /* Category Tabs Styling */
         .tabs-container {
             display: flex;
             gap: 8px;
@@ -298,7 +301,7 @@ TEACHER_DASHBOARD_COMPLETE = """
 
         <div class="form-group">
             <label>Worksheet Category:</label>
-            <select id="category-input">
+            <select id="category-input" onchange="toggleFlashSpeedInput()">
                 <option value="Division">Division</option>
                 <option value="Multiplication">Multiplication</option>
                 <option value="Subtraction">Subtraction</option>
@@ -307,8 +310,13 @@ TEACHER_DASHBOARD_COMPLETE = """
             </select>
         </div>
 
+        <div class="form-group" id="flash-speed-group" style="display: none;">
+            <label>Flash Speed (Milliseconds per term):</label>
+            <input type="number" id="flash-speed-input" value="1500" placeholder="1500">
+        </div>
+
         <div class="form-group">
-            <label>Parsed Problems (One math expression per line):</label>
+            <label>Parsed Problems (One math expression or sequence per line):</label>
             <textarea id="problems-input" rows="4" placeholder="5, -3, +8, +6, -4&#10;9, +1, -2, +3, -7"></textarea>
         </div>
 
@@ -328,7 +336,6 @@ TEACHER_DASHBOARD_COMPLETE = """
         <!-- Active Student Work Library -->
         <h2>Active Student Work Library</h2>
         <div class="section-block">
-            <!-- Category Tabs -->
             <div class="tabs-container">
                 <button class="tab-btn active" onclick="filterCategory('All', this)">All</button>
                 <button class="tab-btn" onclick="filterCategory('Division', this)">Division</button>
@@ -351,6 +358,12 @@ TEACHER_DASHBOARD_COMPLETE = """
     <script>
     let cachedAssignments = [];
     let currentCategory = 'All';
+
+    function toggleFlashSpeedInput() {
+      const category = document.getElementById('category-input').value;
+      const flashSpeedGroup = document.getElementById('flash-speed-group');
+      flashSpeedGroup.style.display = (category === 'Flash Anzan') ? 'block' : 'none';
+    }
 
     async function loadDashboard() {
       const gradesContainer = document.getElementById('student-grades-container');
@@ -431,6 +444,7 @@ TEACHER_DASHBOARD_COMPLETE = """
     async function submitWorksheet(isAssigned) {
       const title = document.getElementById('title-input').value;
       const category = document.getElementById('category-input').value;
+      const flashSpeed = parseInt(document.getElementById('flash-speed-input').value) || 1500;
       const problemsText = document.getElementById('problems-input').value;
 
       if (!title) {
@@ -445,7 +459,14 @@ TEACHER_DASHBOARD_COMPLETE = """
         const res = await fetch('/api/assignments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, category, problems, is_assigned: isAssigned })
+          body: JSON.stringify({ 
+            title, 
+            category, 
+            problems, 
+            is_assigned: isAssigned,
+            is_flash: category === 'Flash Anzan' ? 1 : 0,
+            flash_speed_ms: flashSpeed
+          })
         });
         
         if (res.ok) {
@@ -475,6 +496,185 @@ TEACHER_DASHBOARD_COMPLETE = """
 </html>
 """
 
+STUDENT_HTML_INTERACTIVE_FLASH = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soroban Practice Worksheet</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; background: #eef2f5; margin: 0; }
+        .card { max-width: 800px; margin: 0 auto; background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .home-btn { background: #2563eb; color: white; text-decoration: none; font-weight: bold; padding: 8px 16px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.95em; }
+        .home-btn:hover { background: #1d4ed8; }
+        h1 { color: #1a202c; margin-top: 10px; margin-bottom: 5px; font-size: 1.8em; }
+        .subtitle { color: #4a5568; margin-bottom: 25px; }
+        .problem-card { border: 2px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px; background: #f8fafc; }
+        .problem-header { font-weight: bold; color: #4a5568; margin-bottom: 8px; }
+        .equation { font-size: 1.6em; font-weight: 700; color: #1a202c; letter-spacing: 1px; margin-bottom: 12px; }
+        
+        /* Flash Screen Specific Styling */
+        .flash-display-box {
+            background: #0f172a;
+            color: #38bdf8;
+            font-size: 3.5em;
+            font-weight: 900;
+            text-align: center;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        input[type="number"] { padding: 12px 16px; font-size: 1.2em; width: 180px; border: 2px solid #cbd5e0; border-radius: 6px; outline: none; }
+        input[type="number"]:focus { border-color: #2563eb; }
+        .btn-submit { background: #10b981; color: white; border: none; padding: 14px 28px; font-size: 1.1em; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 15px; }
+        .btn-submit:hover { background: #059669; }
+        .btn-flash-start { background: #2563eb; color: white; border: none; padding: 14px 28px; font-size: 1.2em; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; }
+        .btn-flash-start:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="top-nav">
+            <a href="/teacher" class="home-btn">🏠 Home / Teacher Dashboard</a>
+            <span style="color: #718096; font-size: 0.9em; font-weight: 600;">Soroban Grader Portal</span>
+        </div>
+        <h1 id="worksheet-title">Loading Worksheet...</h1>
+        <p class="subtitle" id="worksheet-sub">Soroban Grader Session</p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin-bottom: 25px;">
+        
+        <form id="worksheet-form" onsubmit="event.preventDefault(); alert('Worksheet submitted successfully!');">
+            <div id="problems-list"><p>Loading problems...</p></div>
+            <button type="submit" id="btn-submit-main" class="btn-submit">Submit Worksheet</button>
+        </form>
+    </div>
+
+    <script>
+    let currentWorksheet = null;
+
+    async function loadWorksheet() {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('assignment_id') || 1;
+        
+        try {
+            const res = await fetch('/api/assignments');
+            const assignments = await res.json();
+            currentWorksheet = assignments.find(item => String(item.id) === String(id)) || assignments[0];
+            
+            if (currentWorksheet) {
+                document.getElementById('worksheet-title').innerText = currentWorksheet.title;
+                document.getElementById('worksheet-sub').innerText = `Category: ${currentWorksheet.category || 'General'} | ${currentWorksheet.problems ? currentWorksheet.problems.length : 0} Problems`;
+                
+                const isFlash = currentWorksheet.is_flash || (currentWorksheet.category && currentWorksheet.category.toLowerCase() === 'flash anzan');
+                
+                if (isFlash) {
+                    renderFlashInterface();
+                } else {
+                    renderStandardInterface();
+                }
+            }
+        } catch(e) {
+            console.error('Failed to load worksheet:', e);
+        }
+    }
+
+    function renderStandardInterface() {
+        const container = document.getElementById('problems-list');
+        if (currentWorksheet.problems && currentWorksheet.problems.length > 0) {
+            container.innerHTML = currentWorksheet.problems.map((p, idx) => `
+                <div class="problem-card">
+                    <div class="problem-header">Problem ${idx + 1}</div>
+                    <div class="equation">${p.equation}</div>
+                    <input type="number" step="any" placeholder="Your Answer" required>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<p>No problems found in this worksheet.</p>';
+        }
+    }
+
+    function renderFlashInterface() {
+        const container = document.getElementById('problems-list');
+        document.getElementById('btn-submit-main').style.display = 'none';
+
+        container.innerHTML = `
+            <div id="flash-container">
+                <div class="flash-display-box" id="flash-screen">READY?</div>
+                <button type="button" class="btn-flash-start" id="btn-start-flash" onclick="runFlashSequence()">⚡ Start Flash Session</button>
+                <div id="flash-answer-section" style="display: none; margin-top: 20px;">
+                    <div class="problem-header" style="font-size: 1.1em; margin-bottom: 10px;">Enter Final Flash Answers:</div>
+                    <div id="flash-answers-inputs"></div>
+                    <button type="submit" class="btn-submit" style="display: block;">Submit Answers</button>
+                </div>
+            </div>
+        `;
+    }
+
+    async function runFlashSequence() {
+        const screen = document.getElementById('flash-screen');
+        const startBtn = document.getElementById('btn-start-flash');
+        startBtn.style.display = 'none';
+
+        const speed = currentWorksheet.flash_speed_ms || 1500;
+        const problems = currentWorksheet.problems || [];
+
+        for (let i = 0; i < problems.length; i++) {
+            const prob = problems[i];
+            screen.innerText = `Problem ${i + 1}`;
+            await sleep(1200);
+
+            let terms = [];
+            if (typeof prob.equation === 'string') {
+                terms = prob.equation.split(',').map(t => t.trim());
+            } else {
+                terms = [prob.equation];
+            }
+
+            for (let term of terms) {
+                screen.innerText = term;
+                await sleep(speed);
+                screen.innerText = '';
+                await sleep(200);
+            }
+
+            screen.innerText = 'DONE!';
+            await sleep(800);
+        }
+
+        screen.innerText = 'COMPLETE!';
+        showFlashAnswersForm();
+    }
+
+    function showFlashAnswersForm() {
+        const section = document.getElementById('flash-answer-section');
+        const inputsContainer = document.getElementById('flash-answers-inputs');
+        section.style.display = 'block';
+
+        inputsContainer.innerHTML = currentWorksheet.problems.map((p, idx) => `
+            <div class="problem-card" style="margin-bottom: 12px;">
+                <div class="problem-header">Problem ${idx + 1} Answer</div>
+                <input type="number" step="any" placeholder="Your Answer" required>
+            </div>
+        `).join('');
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    document.addEventListener('DOMContentLoaded', loadWorksheet);
+    </script>
+</body>
+</html>
+"""
+
 # Web Routes
 @app.route('/')
 @app.route('/teacher')
@@ -489,7 +689,7 @@ def student_portal():
         return send_from_directory(os.path.join(BASE_DIR, 'templates'), 'student.html')
     elif os.path.exists(os.path.join(BASE_DIR, 'student.html')):
         return send_from_directory(BASE_DIR, 'student.html')
-    return "<h1>student.html missing</h1>"
+    return render_template_string(STUDENT_HTML_INTERACTIVE_FLASH)
 
 # API Endpoints
 @app.route('/api/assignments', methods=['GET', 'POST'])
@@ -516,11 +716,6 @@ def get_scores():
 def get_drafts():
     data = fetch_local_db_worksheets(filter_status='draft')
     return jsonify(data), 200
-
-@app.route('/debug-db')
-def debug_db():
-    data = fetch_local_db_worksheets()
-    return jsonify({"db_path": DB_PATH, "found_records": len(data), "records": data})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5050, debug=True) 
