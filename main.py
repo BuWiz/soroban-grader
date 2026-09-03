@@ -4,13 +4,12 @@ import json
 from flask import Flask, render_template_string, jsonify, send_from_directory
 from supabase import create_client, Client
 
-# Initialize Flask app (Exported for Vercel)
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'grader.db')
 
-# Supabase Client Configuration
+# Supabase Client Setup
 SUPABASE_URL = "https://dhrxanvrtjzknafcacpf.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA0MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C"
 
@@ -47,7 +46,6 @@ def fetch_local_db_worksheets():
                 for r in rows:
                     row_dict = dict(r)
                     
-                    # Parse problem JSON string into standard array format
                     raw_problems = row_dict.get('problems', '[]')
                     parsed_problems = []
                     if isinstance(raw_problems, str):
@@ -74,7 +72,7 @@ def fetch_local_db_worksheets():
         
     return worksheets
 
-# Built-in Fallback UI Templates
+# Complete, Fully Operational UI Templates
 TEACHER_FALLBACK_HTML = """
 <!DOCTYPE html>
 <html lang="en">
@@ -84,16 +82,23 @@ TEACHER_FALLBACK_HTML = """
     <title>Teacher Dashboard - Soroban Grader</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; background-color: #f4f6f9; margin: 0; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        h1 { margin-top: 0; color: #1a202c; }
+        .container { max-width: 850px; margin: 0 auto; background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 20px; margin-bottom: 25px; }
+        h1 { margin: 0; color: #1a202c; font-size: 1.8em; }
+        .nav-btn { background: #4a5568; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 0.9em; }
+        .nav-btn:hover { background: #2d3748; }
         .btn { padding: 9px 18px; background: #3182ce; color: white; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; font-weight: bold; }
         .btn:hover { background: #2b6cb0; }
-        .row { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; padding: 14px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }
+        .row { margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; transition: box-shadow 0.2s; }
+        .row:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Teacher Dashboard 🦝</h1>
+        <div class="header-bar">
+            <h1>Teacher Dashboard 🦝</h1>
+            <a href="/student" class="nav-btn">Switch to Student View &rarr;</a>
+        </div>
         <h2>Saved Worksheets Library</h2>
         <div id="active-assignments-container"><p>Loading saved worksheets...</p></div>
     </div>
@@ -109,12 +114,12 @@ TEACHER_FALLBACK_HTML = """
             ? assignments.map(a => `
                 <div class="row">
                   <div>
-                    <a href="/student?assignment_id=${a.id}" style="font-weight: bold; text-decoration: underline; color: #3182ce; font-size: 1.1em;">
+                    <a href="/student?assignment_id=${a.id}" style="font-weight: bold; text-decoration: underline; color: #3182ce; font-size: 1.15em;">
                       ${a.title}
                     </a> 
-                    <span style="color: #666; margin-left: 8px;">(${a.category || 'Worksheet'} - ${a.problems ? a.problems.length : 0} problems)</span>
+                    <span style="color: #718096; margin-left: 10px;">(${a.category || 'Worksheet'} &bull; ${a.problems ? a.problems.length : 0} problems)</span>
                   </div>
-                  <a href="/student?assignment_id=${a.id}" class="btn">View Worksheet</a>
+                  <a href="/student?assignment_id=${a.id}" class="btn">View & Solve</a>
                 </div>
               `).join('')
             : '<p>No active assignments published.</p>';
@@ -138,22 +143,27 @@ STUDENT_FALLBACK_HTML = """
     <title>Soroban Practice Worksheet</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; background: #eef2f5; margin: 0; }
-        .card { max-width: 750px; margin: 0 auto; background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        .nav-link { color: #3182ce; text-decoration: none; font-weight: bold; }
-        h1 { color: #1a202c; margin-top: 15px; margin-bottom: 5px; }
+        .card { max-width: 800px; margin: 0 auto; background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .home-btn { background: #3182ce; color: white; text-decoration: none; font-weight: bold; padding: 8px 16px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.95em; }
+        .home-btn:hover { background: #2b6cb0; }
+        h1 { color: #1a202c; margin-top: 10px; margin-bottom: 5px; font-size: 1.8em; }
         .subtitle { color: #4a5568; margin-bottom: 25px; }
         .problem-card { border: 2px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px; background: #f8fafc; }
-        .problem-header { font-weight: bold; color: #2d3748; margin-bottom: 8px; }
+        .problem-header { font-weight: bold; color: #4a5568; margin-bottom: 8px; }
         .equation { font-size: 1.6em; font-weight: 700; color: #1a202c; letter-spacing: 1px; margin-bottom: 12px; }
-        input[type="number"] { padding: 10px 14px; font-size: 1.1em; width: 140px; border: 2px solid #cbd5e0; border-radius: 6px; outline: none; }
+        input[type="number"] { padding: 10px 14px; font-size: 1.1em; width: 160px; border: 2px solid #cbd5e0; border-radius: 6px; outline: none; }
         input[type="number"]:focus { border-color: #3182ce; }
-        .btn-submit { background: #2f855a; color: white; border: none; padding: 12px 28px; font-size: 1.05em; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .btn-submit { background: #2f855a; color: white; border: none; padding: 12px 28px; font-size: 1.05em; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 15px; }
         .btn-submit:hover { background: #22543d; }
     </style>
 </head>
 <body>
     <div class="card">
-        <a href="/teacher" class="nav-link">&larr; Back to Dashboard</a>
+        <div class="top-nav">
+            <a href="/teacher" class="home-btn">🏠 Home / Teacher Dashboard</a>
+            <span style="color: #718096; font-size: 0.9em; font-weight: 600;">Soroban Grader Portal</span>
+        </div>
         <h1 id="worksheet-title">Loading Worksheet...</h1>
         <p class="subtitle" id="worksheet-sub">Soroban Grader Session</p>
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin-bottom: 25px;">
@@ -243,6 +253,5 @@ def debug_db():
     data = fetch_local_db_worksheets()
     return jsonify({"db_path": DB_PATH, "found_records": len(data), "records": data})
 
-# Executable entry point for local execution
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5050, debug=True) 
