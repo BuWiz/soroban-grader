@@ -15,6 +15,60 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
     return response
 
+def init_db():
+    """Ensures the assignments table exists with all necessary columns."""
+    if not os.path.exists(DB_PATH):
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS assignments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                category TEXT DEFAULT 'Division',
+                problems TEXT DEFAULT '[]',
+                is_assigned INTEGER DEFAULT 1,
+                is_flash INTEGER DEFAULT 0,
+                flash_speed_ms INTEGER DEFAULT 1500
+            )
+        ''')
+        conn.commit()
+        conn.close()
+
+def save_assignment_to_db(title, category, problems, is_assigned, is_flash, flash_speed_ms):
+    """Inserts a newly created worksheet into grader.db."""
+    init_db()
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        problems_json = json.dumps(problems) if isinstance(problems, list) else problems
+        
+        cursor.execute('''
+            INSERT INTO assignments (title, category, problems, is_assigned, is_flash, flash_speed_ms)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (title, category, problems_json, is_assigned, is_flash, flash_speed_ms))
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error saving assignment to database: {e}")
+        return False
+
+def publish_draft_in_db(draft_id):
+    """Updates an existing draft assignment to active status (is_assigned = 1)."""
+    if not os.path.exists(DB_PATH):
+        return False
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('UPDATE assignments SET is_assigned = 1 WHERE id = ?', (draft_id,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error publishing draft: {e}")
+        return False
+
 def fetch_local_db_worksheets(filter_status=None):
     """Reads saved worksheets from grader.db and safely parses JSON problem sets."""
     if not os.path.exists(DB_PATH):
@@ -316,7 +370,7 @@ TEACHER_DASHBOARD_COMPLETE = """
         </div>
 
         <div class="form-group">
-            <label>Parsed Problems (One math expression or sequence per line):</label>
+            <label>Parsed Problems (One math expression per line):</label>
             <textarea id="problems-input" rows="4" placeholder="5, -3, +8, +6, -4&#10;9, +1, -2, +3, -7"></textarea>
         </div>
 
@@ -473,18 +527,17 @@ TEACHER_DASHBOARD_COMPLETE = """
           alert(isAssigned ? 'Worksheet Published!' : 'Draft Saved!');
           document.getElementById('title-input').value = '';
           document.getElementById('problems-input').value = '';
-          loadDashboard();
+          await loadDashboard();
         }
       } catch (e) {
-        alert('Saved locally!');
-        loadDashboard();
+        alert('Error saving worksheet.');
       }
     }
 
     async function publishDraft(draftId) {
       try {
         await fetch(`/api/assignments/publish?id=${draftId}`, { method: 'POST' });
-        loadDashboard();
+        await loadDashboard();
       } catch(e) {
         console.error('Publish error:', e);
       }
@@ -496,7 +549,7 @@ TEACHER_DASHBOARD_COMPLETE = """
 </html>
 """
 
-STUDENT_HTML_INTERACTIVE_FLASH = """
+STUDENT_HTML = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -515,7 +568,6 @@ STUDENT_HTML_INTERACTIVE_FLASH = """
         .problem-header { font-weight: bold; color: #4a5568; margin-bottom: 8px; }
         .equation { font-size: 1.6em; font-weight: 700; color: #1a202c; letter-spacing: 1px; margin-bottom: 12px; }
         
-        /* Flash Screen Specific Styling */
         .flash-display-box {
             background: #0f172a;
             color: #38bdf8;
@@ -689,7 +741,7 @@ def student_portal():
         return send_from_directory(os.path.join(BASE_DIR, 'templates'), 'student.html')
     elif os.path.exists(os.path.join(BASE_DIR, 'student.html')):
         return send_from_directory(BASE_DIR, 'student.html')
-    return render_template_string(STUDENT_HTML_INTERACTIVE_FLASH)
+    return render_template_string(STUDENT_HTML)
 
 # API Endpoints
 @app.route('/api/assignments', methods=['GET', 'POST'])
@@ -697,13 +749,24 @@ def student_portal():
 def handle_assignments():
     if request.method == 'POST':
         data = request.get_json() or {}
-        return jsonify({"status": "success", "data": data}), 201
+        title = data.get('title')
+        category = data.get('category', 'Division')
+        problems = data.get('problems', [])
+        is_assigned = data.get('is_assigned', 1)
+        is_flash = data.get('is_flash', 0)
+        flash_speed_ms = data.get('flash_speed_ms', 1500)
+        
+        save_assignment_to_db(title, category, problems, is_assigned, is_flash, flash_speed_ms)
+        return jsonify({"status": "success"}), 201
         
     data = fetch_local_db_worksheets(filter_status='active')
     return jsonify(data), 200
 
 @app.route('/api/assignments/publish', methods=['POST'])
 def publish_assignment():
+    draft_id = request.args.get('id')
+    if draft_id:
+        publish_draft_in_db(draft_id)
     return jsonify({"status": "published"}), 200
 
 @app.route('/api/scores', methods=['GET'])
@@ -718,4 +781,5 @@ def get_drafts():
     return jsonify(data), 200
 
 if __name__ == '__main__':
+    init_db()
     app.run(host='0.0.0.0', port=5050, debug=True) 
