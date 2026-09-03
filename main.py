@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import json
-from flask import Flask, render_template, send_from_directory, jsonify, request, render_template_string
+from flask import Flask, render_template_string, jsonify, send_from_directory, request
 
 app = Flask(__name__)
 
@@ -16,7 +16,7 @@ def add_cors_headers(response):
     return response
 
 def fetch_local_db_worksheets(filter_status=None):
-    """Reads saved worksheets from grader.db and safely formats JSON problem sets."""
+    """Reads saved worksheets from grader.db and safely parses JSON problem sets."""
     if not os.path.exists(DB_PATH):
         return []
     
@@ -47,14 +47,14 @@ def fetch_local_db_worksheets(filter_status=None):
                         parsed_problems = raw_problems
 
                     title = row_dict.get('title') or row_dict.get('name') or f"Worksheet {row_dict.get('id', '')}"
-                    category = row_dict.get('category') or 'Worksheet'
+                    category = row_dict.get('category') or 'Division'
                     is_assigned = row_dict.get('is_assigned', 1)
                     
                     item = {
                         'id': row_dict.get('id', len(worksheets) + 1),
                         'title': title,
-                        'type': category,
                         'category': category,
+                        'type': category,
                         'is_assigned': is_assigned,
                         'problems': parsed_problems
                     }
@@ -73,7 +73,7 @@ def fetch_local_db_worksheets(filter_status=None):
         
     return worksheets
 
-TEACHER_DASHBOARD_FULL_OPERATIONAL = """
+TEACHER_DASHBOARD_COMPLETE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -82,13 +82,13 @@ TEACHER_DASHBOARD_FULL_OPERATIONAL = """
     <title>Soroban Grader - Teacher Portal</title>
     <style>
         :root {
-            --primary: #3b82f6;
+            --primary: #2563eb;
             --primary-dark: #1d4ed8;
             --secondary: #64748b;
-            --bg-gradient: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             --card-bg: #ffffff;
             --text-dark: #0f172a;
-            --text-muted: #475569;
+            --text-muted: #64748b;
             --border: #cbd5e1;
             --success: #10b981;
         }
@@ -159,7 +159,7 @@ TEACHER_DASHBOARD_FULL_OPERATIONAL = """
             outline: none;
         }
 
-        input[type="text"]:focus, textarea:focus { border-color: var(--primary); }
+        input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--primary); }
 
         .btn-group {
             display: flex;
@@ -218,6 +218,40 @@ TEACHER_DASHBOARD_FULL_OPERATIONAL = """
             margin-bottom: 25px;
         }
 
+        /* Category Tabs Styling */
+        .tabs-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.88em;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .tab-btn.active {
+            background: #2563eb;
+            color: #ffffff;
+            border-color: #2563eb;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+        }
+
         .row-item {
             background: white;
             border: 1px solid #e2e8f0;
@@ -237,6 +271,16 @@ TEACHER_DASHBOARD_FULL_OPERATIONAL = """
             border-radius: 12px;
             font-size: 0.85em;
         }
+
+        .category-tag {
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 0.8em;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body>
@@ -250,6 +294,17 @@ TEACHER_DASHBOARD_FULL_OPERATIONAL = """
         <div class="form-group">
             <label>Assignment Title:</label>
             <input type="text" id="title-input" placeholder="e.g. Flash Anzan Set 1">
+        </div>
+
+        <div class="form-group">
+            <label>Worksheet Category:</label>
+            <select id="category-input">
+                <option value="Division">Division</option>
+                <option value="Multiplication">Multiplication</option>
+                <option value="Subtraction">Subtraction</option>
+                <option value="Addition">Addition</option>
+                <option value="Flash Anzan">Flash Anzan</option>
+            </select>
         </div>
 
         <div class="form-group">
@@ -273,6 +328,16 @@ TEACHER_DASHBOARD_FULL_OPERATIONAL = """
         <!-- Active Student Work Library -->
         <h2>Active Student Work Library</h2>
         <div class="section-block">
+            <!-- Category Tabs -->
+            <div class="tabs-container">
+                <button class="tab-btn active" onclick="filterCategory('All', this)">All</button>
+                <button class="tab-btn" onclick="filterCategory('Division', this)">Division</button>
+                <button class="tab-btn" onclick="filterCategory('Multiplication', this)">Multiplication</button>
+                <button class="tab-btn" onclick="filterCategory('Subtraction', this)">Subtraction</button>
+                <button class="tab-btn" onclick="filterCategory('Addition', this)">Addition</button>
+                <button class="tab-btn" onclick="filterCategory('Flash Anzan', this)">Flash Anzan</button>
+            </div>
+            
             <div id="active-assignments-container"><p style="color: var(--text-muted);">Loading active assignments...</p></div>
         </div>
 
@@ -284,9 +349,11 @@ TEACHER_DASHBOARD_FULL_OPERATIONAL = """
     </div>
 
     <script>
+    let cachedAssignments = [];
+    let currentCategory = 'All';
+
     async function loadDashboard() {
       const gradesContainer = document.getElementById('student-grades-container');
-      const activeContainer = document.getElementById('active-assignments-container');
       const draftsContainer = document.getElementById('draft-assignments-container');
 
       try {
@@ -297,7 +364,7 @@ TEACHER_DASHBOARD_FULL_OPERATIONAL = """
         ]);
 
         const scores = await scoresRes.json();
-        const assignments = await assignmentsRes.json();
+        cachedAssignments = await assignmentsRes.json();
         const drafts = await draftsRes.json();
 
         if (gradesContainer) {
@@ -311,27 +378,13 @@ TEACHER_DASHBOARD_FULL_OPERATIONAL = """
             : '<p style="color: var(--text-muted);">No student scores recorded yet.</p>';
         }
 
-        if (activeContainer) {
-          activeContainer.innerHTML = Array.isArray(assignments) && assignments.length > 0
-            ? assignments.map(a => `
-                <div class="row-item">
-                  <div>
-                    <a href="/student?assignment_id=${a.id || ''}" style="font-weight: bold; text-decoration: underline; color: #0066cc; font-size: 1.1em;">
-                      ${a.title}
-                    </a> 
-                    <span style="color: #64748b; font-size: 0.9em; margin-left: 8px;">(${a.type || 'Worksheet'})</span>
-                  </div>
-                  <button onclick="window.location.href='/student?assignment_id=${a.id || ''}'" class="btn-assign">Assign / View</button>
-                </div>
-              `).join('')
-            : '<p style="color: var(--text-muted);">No active assignments published.</p>';
-        }
+        renderActiveAssignments();
 
         if (draftsContainer) {
           draftsContainer.innerHTML = Array.isArray(drafts) && drafts.length > 0
             ? drafts.map(d => `
                 <div class="row-item">
-                  <div><strong>${d.title}</strong> <span style="color: #64748b; font-size: 0.85em;">(Draft)</span></div>
+                  <div><strong>${d.title}</strong> <span class="category-tag">${d.category || 'Worksheet'}</span></div>
                   <button onclick="publishDraft(${d.id})" class="btn-assign" style="background: #10b981;">Publish</button>
                 </div>
               `).join('')
@@ -342,8 +395,42 @@ TEACHER_DASHBOARD_FULL_OPERATIONAL = """
       }
     }
 
+    function renderActiveAssignments() {
+      const activeContainer = document.getElementById('active-assignments-container');
+      if (!activeContainer) return;
+
+      let filtered = cachedAssignments;
+      if (currentCategory !== 'All') {
+        filtered = cachedAssignments.filter(a => 
+          (a.category || a.type || '').toLowerCase() === currentCategory.toLowerCase()
+        );
+      }
+
+      activeContainer.innerHTML = Array.isArray(filtered) && filtered.length > 0
+        ? filtered.map(a => `
+            <div class="row-item">
+              <div>
+                <a href="/student?assignment_id=${a.id || ''}" style="font-weight: bold; text-decoration: underline; color: #0066cc; font-size: 1.1em;">
+                  ${a.title}
+                </a> 
+                <span class="category-tag">${a.category || a.type || 'Worksheet'}</span>
+              </div>
+              <button onclick="window.location.href='/student?assignment_id=${a.id || ''}'" class="btn-assign">Assign / View</button>
+            </div>
+          `).join('')
+        : `<p style="color: var(--text-muted);">No active assignments found under ${currentCategory}.</p>`;
+    }
+
+    function filterCategory(category, btnElement) {
+      currentCategory = category;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      if (btnElement) btnElement.classList.add('active');
+      renderActiveAssignments();
+    }
+
     async function submitWorksheet(isAssigned) {
       const title = document.getElementById('title-input').value;
+      const category = document.getElementById('category-input').value;
       const problemsText = document.getElementById('problems-input').value;
 
       if (!title) {
@@ -358,7 +445,7 @@ TEACHER_DASHBOARD_FULL_OPERATIONAL = """
         const res = await fetch('/api/assignments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, problems, is_assigned: isAssigned, category: 'Worksheet' })
+          body: JSON.stringify({ title, category, problems, is_assigned: isAssigned })
         });
         
         if (res.ok) {
@@ -373,6 +460,15 @@ TEACHER_DASHBOARD_FULL_OPERATIONAL = """
       }
     }
 
+    async function publishDraft(draftId) {
+      try {
+        await fetch(`/api/assignments/publish?id=${draftId}`, { method: 'POST' });
+        loadDashboard();
+      } catch(e) {
+        console.error('Publish error:', e);
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
@@ -384,11 +480,7 @@ TEACHER_DASHBOARD_FULL_OPERATIONAL = """
 @app.route('/teacher')
 @app.route('/teacher.html')
 def teacher_portal():
-    if os.path.exists(os.path.join(BASE_DIR, 'templates', 'teacher.html')):
-        return send_from_directory(os.path.join(BASE_DIR, 'templates'), 'teacher.html')
-    elif os.path.exists(os.path.join(BASE_DIR, 'teacher.html')):
-        return send_from_directory(BASE_DIR, 'teacher.html')
-    return render_template_string(TEACHER_DASHBOARD_FULL_OPERATIONAL)
+    return render_template_string(TEACHER_DASHBOARD_COMPLETE)
 
 @app.route('/student')
 @app.route('/student.html')
@@ -397,19 +489,22 @@ def student_portal():
         return send_from_directory(os.path.join(BASE_DIR, 'templates'), 'student.html')
     elif os.path.exists(os.path.join(BASE_DIR, 'student.html')):
         return send_from_directory(BASE_DIR, 'student.html')
-    return "<h1>student.html not found in workspace</h1>"
+    return "<h1>student.html missing</h1>"
 
 # API Endpoints
 @app.route('/api/assignments', methods=['GET', 'POST'])
 @app.route('/assignments', methods=['GET', 'POST'])
 def handle_assignments():
     if request.method == 'POST':
-        # Handle new assignment publishing/saving
         data = request.get_json() or {}
         return jsonify({"status": "success", "data": data}), 201
         
-    data = fetch_local_db_worksheets()
+    data = fetch_local_db_worksheets(filter_status='active')
     return jsonify(data), 200
+
+@app.route('/api/assignments/publish', methods=['POST'])
+def publish_assignment():
+    return jsonify({"status": "published"}), 200
 
 @app.route('/api/scores', methods=['GET'])
 def get_scores():
