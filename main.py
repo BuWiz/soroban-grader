@@ -41,7 +41,13 @@ def fetch_worksheets(filter_status=None):
                         parsed_problems = raw_problems
 
                     category = row.get('category') or 'Division'
-                    is_assigned = row.get('is_assigned', 1)
+                    
+                    # Flexible assignment flag detection (supports 1, true, '1', 'true', or None)
+                    raw_assigned = row.get('is_assigned')
+                    if raw_assigned in [1, True, '1', 'true', 'TRUE', None]:
+                        is_assigned = 1
+                    else:
+                        is_assigned = 0
                     
                     item = {
                         'id': row.get('id'),
