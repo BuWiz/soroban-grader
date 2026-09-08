@@ -324,6 +324,7 @@ STUDENT_HTML = """
         .card { max-width: 800px; margin: 0 auto; background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .home-btn { background: #2563eb; color: white; text-decoration: none; font-weight: bold; padding: 10px 18px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.95em; cursor: pointer; }
+        .select-assignment { padding: 8px 12px; border-radius: 6px; border: 2px solid #cbd5e1; font-weight: bold; color: #1e293b; background: #f8fafc; cursor: pointer; }
         h1 { color: #1a202c; margin-top: 10px; margin-bottom: 5px; font-size: 1.8em; }
         .subtitle { color: #4a5568; margin-bottom: 25px; }
         .problem-card { border: 2px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px; background: #f8fafc; }
@@ -342,8 +343,12 @@ STUDENT_HTML = """
 <body>
     <div class="card">
         <div class="top-nav">
-            <a href="/teacher" class="home-btn" onclick="window.location.href='/teacher'; return false;">🏠 Home / Teacher Dashboard</a>
-            <span style="color: #718096; font-size: 0.9em; font-weight: 600;">Soroban Grader Portal</span>
+            <button type="button" class="home-btn" onclick="window.location.href='/teacher'">🏠 Home / Teacher Dashboard</button>
+            <div>
+                <label style="font-weight: bold; margin-right: 6px; font-size: 0.9em; color: #475569;">Switch Assignment:</label>
+                <select id="assignment-picker" class="select-assignment" onchange="switchAssignment(this.value)">
+                </select>
+            </div>
         </div>
         <h1 id="worksheet-title">Loading Worksheet...</h1>
         <p class="subtitle" id="worksheet-sub">Soroban Grader Session</p>
@@ -357,10 +362,11 @@ STUDENT_HTML = """
 
     <script>
     let currentWorksheet = null;
+    let allAssigned = [];
 
     function loadWorksheet() {
         const params = new URLSearchParams(window.location.search);
-        const id = params.get('assignment_id') || '1';
+        const id = params.get('assignment_id');
         
         const saved = localStorage.getItem('soroban_worksheets');
         let store = [];
@@ -368,7 +374,27 @@ STUDENT_HTML = """
             try { store = JSON.parse(saved); } catch(e) {}
         }
 
-        currentWorksheet = store.find(item => String(item.id) === String(id));
+        allAssigned = store.filter(item => item.is_assigned === 1);
+        if (allAssigned.length === 0) {
+            allAssigned = store; // fallback to show all if none flagged active
+        }
+
+        // Build dropdown options
+        const picker = document.getElementById('assignment-picker');
+        if (picker && allAssigned.length > 0) {
+            picker.innerHTML = allAssigned.map(item => `
+                <option value="${item.id}" ${String(item.id) === String(id) ? 'selected' : ''}>
+                    ${item.title} (${item.category || 'General'})
+                </option>
+            `).join('');
+        }
+
+        if (id) {
+            currentWorksheet = store.find(item => String(item.id) === String(id));
+        }
+        if (!currentWorksheet && allAssigned.length > 0) {
+            currentWorksheet = allAssigned[0];
+        }
 
         if (!currentWorksheet) {
             currentWorksheet = {
@@ -392,6 +418,10 @@ STUDENT_HTML = """
         const isFlash = currentWorksheet.is_flash || (currentWorksheet.category && currentWorksheet.category.toLowerCase() === 'flash anzan');
         if (isFlash) renderFlashInterface();
         else renderStandardInterface();
+    }
+
+    function switchAssignment(newId) {
+        window.location.href = `/student?assignment_id=${newId}`;
     }
 
     function renderStandardInterface() {
