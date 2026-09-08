@@ -1,6 +1,5 @@
 import os
-import json
-from flask import Flask, render_template_string, jsonify
+from flask import Flask, render_template_string
 
 app = Flask(__name__)
 
@@ -54,7 +53,7 @@ TEACHER_DASHBOARD_HTML = """
 
         .btn-switch {
             background: #0284c7; color: white; text-decoration: none; padding: 10px 18px;
-            border-radius: 8px; font-weight: 700; font-size: 0.9em;
+            border-radius: 8px; font-weight: 700; font-size: 0.9em; cursor: pointer; display: inline-block;
         }
 
         .form-group { margin-bottom: 20px; }
@@ -168,112 +167,72 @@ TEACHER_DASHBOARD_HTML = """
                 <button class="tab-btn" onclick="filterCategory('Addition', this)">Addition</button>
                 <button class="tab-btn" onclick="filterCategory('Flash Anzan', this)">Flash Anzan</button>
             </div>
-            <div id="active-assignments-container"><p style="color: var(--text-muted);">Loading active assignments...</p></div>
+            <div id="active-assignments-container"></div>
         </div>
 
         <h2>Saved Draft Library</h2>
         <div class="section-block">
-            <div id="draft-assignments-container"><p style="color: var(--text-muted);">Loading draft library...</p></div>
+            <div id="draft-assignments-container"></div>
         </div>
     </div>
 
     <script>
-    const SUPABASE_URL = "https://dhrxanvrtjzknafcacpf.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA4MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C";
-
-    // Permanent hardcoded initial list
-    let cachedAssignments = [
-      { id: '1', title: "division 1", category: "Division", type: "Division", is_assigned: 1, problems: [{equation: "12 / 3", answer: 4}] }
-    ];
-
-    let cachedDrafts = [
+    const INITIAL_ASSIGNMENTS = [
+      { id: '1', title: "division 1", category: "Division", type: "Division", is_assigned: 1, problems: [{equation: "12 / 3", answer: 4}] },
       { id: '2', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 0, problems: [{equation: "12 x 15", answer: 180}] },
-      { id: '3', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 0, problems: [{equation: "100 - 3", answer: 97}] },
-      { id: '4', title: "100s (-) 4", category: "Subtraction", type: "Subtraction", is_assigned: 0, problems: [{equation: "100 - 4", answer: 96}] }
+      { id: '3', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 0, problems: [{"equation": "100 - 3", "answer": 97}] },
+      { id: '4', title: "100s (-) 4", category: "Subtraction", type: "Subtraction", is_assigned: 0, problems: [{"equation": "100 - 4", "answer": 96}] }
     ];
 
+    let store = [];
     let currentCategory = 'All';
+
+    function loadStore() {
+      const saved = localStorage.getItem('soroban_worksheets');
+      if (saved) {
+        try { store = JSON.parse(saved); } catch(e) { store = INITIAL_ASSIGNMENTS; }
+      } else {
+        store = INITIAL_ASSIGNMENTS;
+        saveStore();
+      }
+      renderAll();
+    }
+
+    function saveStore() {
+      localStorage.setItem('soroban_worksheets', JSON.stringify(store));
+    }
 
     function toggleFlashSpeedInput() {
       const category = document.getElementById('category-input').value;
       document.getElementById('flash-speed-group').style.display = (category === 'Flash Anzan') ? 'block' : 'none';
     }
 
-    async function initDashboard() {
+    function renderAll() {
       renderActiveAssignments();
       renderDrafts();
-
-      // Try background sync with Supabase without overriding defaults if empty
-      try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/assignments?select=*`, {
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
-        });
-        const data = await res.json();
-        
-        if (Array.isArray(data) && data.length > 0) {
-          data.forEach(row => {
-            let rawProblems = row.problems || '[]';
-            let parsedProblems = [];
-            if (typeof rawProblems === 'string') {
-              try { parsedProblems = JSON.parse(rawProblems); } catch(e) { parsedProblems = []; }
-            } else if (Array.isArray(rawProblems)) {
-              parsedProblems = rawProblems;
-            }
-
-            const item = {
-              id: String(row.id),
-              title: row.title || row.name || `Worksheet ${row.id}`,
-              category: row.category || 'Division',
-              type: row.category || 'Division',
-              is_assigned: row.is_assigned,
-              is_flash: row.is_flash || 0,
-              flash_speed_ms: row.flash_speed_ms || 1500,
-              problems: parsedProblems
-            };
-
-            const existsInActive = cachedAssignments.some(a => String(a.id) === String(item.id));
-            const existsInDrafts = cachedDrafts.some(d => String(d.id) === String(item.id));
-
-            if (!existsInActive && !existsInDrafts) {
-              if (row.is_assigned === 1 || row.is_assigned === true) {
-                cachedAssignments.push(item);
-              } else {
-                cachedDrafts.push(item);
-              }
-            }
-          });
-          renderActiveAssignments();
-          renderDrafts();
-        }
-      } catch (e) {
-        console.error('Supabase bg sync:', e);
-      }
     }
 
     function renderActiveAssignments() {
       const activeContainer = document.getElementById('active-assignments-container');
       if (!activeContainer) return;
 
-      let filtered = cachedAssignments;
+      let activeItems = store.filter(item => item.is_assigned === 1);
       if (currentCategory !== 'All') {
-        filtered = cachedAssignments.filter(a => 
+        activeItems = activeItems.filter(a => 
           (a.category || a.type || '').toLowerCase() === currentCategory.toLowerCase()
         );
       }
 
-      activeContainer.innerHTML = Array.isArray(filtered) && filtered.length > 0
-        ? filtered.map(a => `
+      activeContainer.innerHTML = activeItems.length > 0
+        ? activeItems.map(a => `
             <div class="row-item">
               <div>
-                <a href="/student?assignment_id=${a.id || ''}" style="font-weight: bold; text-decoration: underline; color: #0066cc; font-size: 1.1em;">
+                <a href="/student?assignment_id=${a.id}" style="font-weight: bold; text-decoration: underline; color: #0066cc; font-size: 1.1em;">
                   ${a.title}
                 </a> 
-                <span class="category-tag">${a.category || a.type || 'Worksheet'}</span>
+                <span class="category-tag">${a.category || 'Worksheet'}</span>
               </div>
-              <button onclick="window.location.href='/student?assignment_id=${a.id || ''}'" class="btn-assign">Assign / View</button>
+              <button onclick="window.location.href='/student?assignment_id=${a.id}'" class="btn-assign">Assign / View</button>
             </div>
           `).join('')
         : `<p style="color: var(--text-muted);">No active assignments found under ${currentCategory}.</p>`;
@@ -283,9 +242,11 @@ TEACHER_DASHBOARD_HTML = """
       const draftsContainer = document.getElementById('draft-assignments-container');
       if (!draftsContainer) return;
 
-      draftsContainer.innerHTML = Array.isArray(cachedDrafts) && cachedDrafts.length > 0
-        ? cachedDrafts.map(d => `
-            <div class="row-item" id="draft-row-${d.id}">
+      let draftItems = store.filter(item => item.is_assigned === 0);
+
+      draftsContainer.innerHTML = draftItems.length > 0
+        ? draftItems.map(d => `
+            <div class="row-item">
               <div><strong>${d.title}</strong> <span class="category-tag">${d.category || 'Worksheet'}</span></div>
               <button onclick="submitDraftDirectly('${d.id}')" class="btn-assign" style="background: #10b981;">Submit</button>
             </div>
@@ -300,33 +261,16 @@ TEACHER_DASHBOARD_HTML = """
       renderActiveAssignments();
     }
 
-    async function submitDraftDirectly(draftId) {
-      const draftIdx = cachedDrafts.findIndex(d => String(d.id) === String(draftId));
-      if (draftIdx !== -1) {
-        const item = cachedDrafts.splice(draftIdx, 1)[0];
-        item.is_assigned = 1;
-        cachedAssignments.push(item);
-        renderActiveAssignments();
-        renderDrafts();
-      }
-
-      try {
-        fetch(`${SUPABASE_URL}/rest/v1/assignments?id=eq.${draftId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Prefer': 'return=minimal'
-          },
-          body: JSON.stringify({ is_assigned: 1 })
-        });
-      } catch(e) {
-        console.error('Supabase patch sync:', e);
+    function submitDraftDirectly(draftId) {
+      const target = store.find(d => String(d.id) === String(draftId));
+      if (target) {
+        target.is_assigned = 1;
+        saveStore();
+        renderAll();
       }
     }
 
-    async function submitWorksheet(isAssigned) {
+    function submitWorksheet(isAssigned) {
       const title = document.getElementById('title-input').value;
       const category = document.getElementById('category-input').value;
       const flashSpeed = parseInt(document.getElementById('flash-speed-input').value) || 1500;
@@ -338,9 +282,11 @@ TEACHER_DASHBOARD_HTML = """
       }
 
       const rawLines = problemsText.split('\\n').filter(line => line.trim() !== '');
-      const problems = rawLines.map(line => ({ equation: line, answer: 0 }));
+      const problems = rawLines.length > 0 
+        ? rawLines.map(line => ({ equation: line, answer: 0 }))
+        : [{ equation: "10 - 2", answer: 8 }];
 
-      const newWorksheet = {
+      const newItem = {
         id: String(Date.now()),
         title,
         category,
@@ -351,42 +297,16 @@ TEACHER_DASHBOARD_HTML = """
         problems
       };
 
-      if (isAssigned === 1) {
-        cachedAssignments.push(newWorksheet);
-      } else {
-        cachedDrafts.push(newWorksheet);
-      }
-
-      renderActiveAssignments();
-      renderDrafts();
+      store.push(newItem);
+      saveStore();
+      renderAll();
 
       document.getElementById('title-input').value = '';
       document.getElementById('problems-input').value = '';
-
-      try {
-        fetch(`${SUPABASE_URL}/rest/v1/assignments`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Prefer': 'return=minimal'
-          },
-          body: JSON.stringify({
-            title,
-            category,
-            problems: JSON.stringify(problems),
-            is_assigned: isAssigned,
-            is_flash: category === 'Flash Anzan' ? 1 : 0,
-            flash_speed_ms: flashSpeed
-          })
-        });
-      } catch (e) {
-        console.error('Supabase save background:', e);
-      }
+      alert(isAssigned ? 'Worksheet Submitted to Active Library!' : 'Draft Saved to Library!');
     }
 
-    document.addEventListener('DOMContentLoaded', initDashboard);
+    document.addEventListener('DOMContentLoaded', loadStore);
     </script>
 </body>
 </html>
@@ -403,7 +323,7 @@ STUDENT_HTML = """
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; background: #eef2f5; margin: 0; }
         .card { max-width: 800px; margin: 0 auto; background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .home-btn { background: #2563eb; color: white; text-decoration: none; font-weight: bold; padding: 8px 16px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.95em; }
+        .home-btn { background: #2563eb; color: white; text-decoration: none; font-weight: bold; padding: 10px 18px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.95em; cursor: pointer; }
         h1 { color: #1a202c; margin-top: 10px; margin-bottom: 5px; font-size: 1.8em; }
         .subtitle { color: #4a5568; margin-bottom: 25px; }
         .problem-card { border: 2px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px; background: #f8fafc; }
@@ -422,7 +342,7 @@ STUDENT_HTML = """
 <body>
     <div class="card">
         <div class="top-nav">
-            <a href="/teacher" class="home-btn">🏠 Home / Teacher Dashboard</a>
+            <a href="/teacher" class="home-btn" onclick="window.location.href='/teacher'; return false;">🏠 Home / Teacher Dashboard</a>
             <span style="color: #718096; font-size: 0.9em; font-weight: 600;">Soroban Grader Portal</span>
         </div>
         <h1 id="worksheet-title">Loading Worksheet...</h1>
@@ -436,36 +356,31 @@ STUDENT_HTML = """
     </div>
 
     <script>
-    const SUPABASE_URL = "https://dhrxanvrtjzknafcacpf.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA4MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C";
-
     let currentWorksheet = null;
 
-    async function loadWorksheet() {
+    function loadWorksheet() {
         const params = new URLSearchParams(window.location.search);
         const id = params.get('assignment_id') || '1';
         
-        try {
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/assignments?select=*`, {
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`
-                }
-            });
-            const assignments = await res.json();
-            currentWorksheet = assignments.find(item => String(item.id) === String(id));
-        } catch(e) { console.error('Failed to load worksheet:', e); }
+        const saved = localStorage.getItem('soroban_worksheets');
+        let store = [];
+        if (saved) {
+            try { store = JSON.parse(saved); } catch(e) {}
+        }
+
+        currentWorksheet = store.find(item => String(item.id) === String(id));
 
         if (!currentWorksheet) {
             currentWorksheet = {
-                id: id,
-                title: id === '1' ? 'division 1' : 'Soroban Worksheet',
+                id: '1',
+                title: 'division 1',
                 category: 'Division',
                 problems: [{ equation: "12 / 3", answer: 4 }]
             };
         }
 
         document.getElementById('worksheet-title').innerText = currentWorksheet.title || 'Worksheet';
+        
         let rawProblems = currentWorksheet.problems || [];
         if (typeof rawProblems === 'string') {
             try { rawProblems = JSON.parse(rawProblems); } catch(e) { rawProblems = []; }
