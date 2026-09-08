@@ -11,7 +11,7 @@ DB_PATH = os.path.join(BASE_DIR, 'grader.db')
 
 # Active Supabase Credentials
 SUPABASE_URL = "https://dhrxanvrtjzknafcacpf.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA0MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA4MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C"
 
 supabase: Client = None
 try:
@@ -27,14 +27,16 @@ def add_cors_headers(response):
     return response
 
 def save_assignment(title, category, problems, is_assigned, is_flash, flash_speed_ms):
-    """Saves assignment directly to Supabase with local SQLite fallback."""
+    """Saves assignment directly to Supabase with detailed error feedback and SQLite local fallback."""
+    problems_data = json.dumps(problems) if isinstance(problems, list) else problems
+
     payload = {
         'title': title,
         'category': category,
-        'problems': json.dumps(problems) if isinstance(problems, list) else problems,
-        'is_assigned': is_assigned,
-        'is_flash': is_flash,
-        'flash_speed_ms': flash_speed_ms
+        'problems': problems_data,
+        'is_assigned': int(is_assigned),
+        'is_flash': int(is_flash),
+        'flash_speed_ms': int(flash_speed_ms)
     }
     
     # 1. Primary Cloud Save: Supabase
@@ -42,9 +44,10 @@ def save_assignment(title, category, problems, is_assigned, is_flash, flash_spee
         try:
             res = supabase.table('assignments').insert(payload).execute()
             if res.data:
-                return True
+                return True, "Success"
         except Exception as e:
-            print(f"Supabase save failed, attempting local fallback: {e}")
+            print(f"Supabase insert error: {e}")
+            return False, str(e)
 
     # 2. Local Fallback Save: SQLite
     if os.path.exists(DB_PATH):
@@ -57,11 +60,12 @@ def save_assignment(title, category, problems, is_assigned, is_flash, flash_spee
             ''', (title, category, payload['problems'], is_assigned, is_flash, flash_speed_ms))
             conn.commit()
             conn.close()
-            return True
+            return True, "Local SQLite Success"
         except Exception as e:
             print(f"SQLite save failed: {e}")
+            return False, str(e)
 
-    return False
+    return False, "Database client unavailable"
 
 def publish_draft(draft_id):
     """Updates draft state (is_assigned = 1) in Supabase or SQLite."""
@@ -442,16 +446,17 @@ TEACHER_DASHBOARD_HTML = """
           })
         });
         
-        if (res.ok) {
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
           alert(isAssigned ? 'Worksheet Published!' : 'Draft Saved to Library!');
           document.getElementById('title-input').value = '';
           document.getElementById('problems-input').value = '';
           await loadDashboard();
         } else {
-          alert('Failed to save assignment.');
+          alert('Failed to save assignment: ' + (data.message || 'Unknown error'));
         }
       } catch (e) {
-        alert('Connection error.');
+        alert('Connection error: ' + e.message);
       }
     }
 
@@ -642,10 +647,10 @@ def handle_assignments():
         is_flash = data.get('is_flash', 0)
         flash_speed_ms = data.get('flash_speed_ms', 1500)
         
-        success = save_assignment(title, category, problems, is_assigned, is_flash, flash_speed_ms)
+        success, err = save_assignment(title, category, problems, is_assigned, is_flash, flash_speed_ms)
         if success:
             return jsonify({"status": "success"}), 201
-        return jsonify({"status": "error", "message": "Save failed"}), 500
+        return jsonify({"status": "error", "message": err}), 500
         
     data = fetch_worksheets(filter_status='active')
     return jsonify(data), 200
@@ -669,4 +674,4 @@ def get_drafts():
     return jsonify(data), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5050, debug=True) 
+    app.run(host='0.0.0.0', port=5050, debug=True)
