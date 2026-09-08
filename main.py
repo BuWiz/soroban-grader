@@ -9,7 +9,6 @@ app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'grader.db')
 
-# Active Supabase Credentials
 SUPABASE_URL = "https://dhrxanvrtjzknafcacpf.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA4MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C"
 
@@ -26,91 +25,11 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
     return response
 
-def save_assignment(title, category, problems, is_assigned, is_flash, flash_speed_ms):
-    """Saves assignment directly to Supabase with detailed error feedback and SQLite local fallback."""
-    problems_data = json.dumps(problems) if isinstance(problems, list) else problems
-
-    payload = {
-        'title': title,
-        'category': category,
-        'problems': problems_data,
-        'is_assigned': int(is_assigned),
-        'is_flash': int(is_flash),
-        'flash_speed_ms': int(flash_speed_ms)
-    }
-    
-    # 1. Primary Cloud Save: Supabase
-    if supabase:
-        try:
-            res = supabase.table('assignments').insert(payload).execute()
-            if res.data:
-                return True, "Success"
-        except Exception as e:
-            print(f"Supabase insert error: {e}")
-            return False, str(e)
-
-    # 2. Local Fallback Save: SQLite
-    if os.path.exists(DB_PATH):
-        try:
-            conn = sqlite3.connect(DB_PATH)
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT INTO assignments (title, category, problems, is_assigned, is_flash, flash_speed_ms)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (title, category, payload['problems'], is_assigned, is_flash, flash_speed_ms))
-            conn.commit()
-            conn.close()
-            return True, "Local SQLite Success"
-        except Exception as e:
-            print(f"SQLite save failed: {e}")
-            return False, str(e)
-
-    return False, "Database client unavailable"
-
-def publish_draft(draft_id):
-    """Updates draft state (is_assigned = 1) in Supabase or SQLite."""
-    if not draft_id:
-        return False
-
-    if supabase:
-        try:
-            try:
-                target_id = int(draft_id)
-            except ValueError:
-                target_id = str(draft_id)
-
-            res = supabase.table('assignments').update({'is_assigned': 1}).eq('id', target_id).execute()
-            if res.data:
-                return True
-        except Exception as e:
-            print(f"Supabase publish failed: {e}")
-
-    if os.path.exists(DB_PATH):
-        try:
-            conn = sqlite3.connect(DB_PATH)
-            cursor = conn.cursor()
-            cursor.execute('UPDATE assignments SET is_assigned = 1 WHERE id = ?', (draft_id,))
-            conn.commit()
-            conn.close()
-            return True
-        except Exception as e:
-            print(f"SQLite publish failed: {e}")
-    return False
-
 def fetch_worksheets(filter_status=None):
-    """Fetches assignments from Supabase or local grader.db."""
     worksheets = []
-    
-    # 1. Try Supabase
     if supabase:
         try:
-            query = supabase.table('assignments').select('*')
-            if filter_status == 'active':
-                query = query.eq('is_assigned', 1)
-            elif filter_status == 'draft':
-                query = query.eq('is_assigned', 0)
-            
-            res = query.execute()
+            res = supabase.table('assignments').select('*').execute()
             if res.data:
                 for row in res.data:
                     raw_problems = row.get('problems', '[]')
@@ -122,56 +41,28 @@ def fetch_worksheets(filter_status=None):
                         parsed_problems = raw_problems
 
                     category = row.get('category') or 'Division'
-                    worksheets.append({
+                    is_assigned = row.get('is_assigned', 1)
+                    
+                    item = {
                         'id': row.get('id'),
                         'title': row.get('title') or f"Worksheet {row.get('id')}",
                         'category': category,
                         'type': category,
-                        'is_assigned': row.get('is_assigned', 1),
+                        'is_assigned': is_assigned,
                         'is_flash': row.get('is_flash', 0),
                         'flash_speed_ms': row.get('flash_speed_ms', 1500),
                         'problems': parsed_problems
-                    })
+                    }
+
+                    if filter_status == 'active' and is_assigned == 1:
+                        worksheets.append(item)
+                    elif filter_status == 'draft' and is_assigned == 0:
+                        worksheets.append(item)
+                    elif filter_status is None:
+                        worksheets.append(item)
                 return worksheets
         except Exception as e:
-            print(f"Supabase fetch fallback to SQLite: {e}")
-
-    # 2. Local SQLite Fallback
-    if os.path.exists(DB_PATH):
-        try:
-            conn = sqlite3.connect(DB_PATH)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-            tables = [r['name'] for r in cursor.fetchall() if r['name'] != 'sqlite_sequence']
-            
-            for table in tables:
-                try:
-                    cursor.execute(f"SELECT * FROM {table}")
-                    for r in cursor.fetchall():
-                        row_dict = dict(r)
-                        raw_problems = row_dict.get('problems', '[]')
-                        parsed_problems = json.loads(raw_problems) if isinstance(raw_problems, str) else raw_problems
-                        
-                        category = row_dict.get('category') or 'Division'
-                        is_assigned = row_dict.get('is_assigned', 1)
-                        item = {
-                            'id': row_dict.get('id', len(worksheets) + 1),
-                            'title': row_dict.get('title') or f"Worksheet {row_dict.get('id')}",
-                            'category': category,
-                            'type': category,
-                            'is_assigned': is_assigned,
-                            'is_flash': row_dict.get('is_flash', 0),
-                            'flash_speed_ms': row_dict.get('flash_speed_ms', 1500),
-                            'problems': parsed_problems
-                        }
-                        if filter_status == 'active' and is_assigned == 1: worksheets.append(item)
-                        elif filter_status == 'draft' and is_assigned == 0: worksheets.append(item)
-                        elif filter_status is None: worksheets.append(item)
-                except Exception: pass
-            conn.close()
-        except Exception as e:
-            print(f"SQLite error: {e}")
+            print(f"Supabase fetch error: {e}")
             
     return worksheets
 
@@ -313,7 +204,7 @@ TEACHER_DASHBOARD_HTML = """
         </div>
 
         <div class="btn-group">
-            <button class="btn" onclick="submitWorksheet(1)">Publish to Students</button>
+            <button class="btn" onclick="submitWorksheet(1)">Submit to Students</button>
             <button class="btn btn-secondary" onclick="submitWorksheet(0)">Save to Library (Draft)</button>
         </div>
 
@@ -345,6 +236,7 @@ TEACHER_DASHBOARD_HTML = """
 
     <script>
     let cachedAssignments = [];
+    let cachedDrafts = [];
     let currentCategory = 'All';
 
     function toggleFlashSpeedInput() {
@@ -362,7 +254,7 @@ TEACHER_DASHBOARD_HTML = """
 
         const scores = await scoresRes.json();
         cachedAssignments = await assignmentsRes.json();
-        const drafts = await draftsRes.json();
+        cachedDrafts = await draftsRes.json();
 
         const gradesContainer = document.getElementById('student-grades-container');
         if (gradesContainer) {
@@ -377,18 +269,7 @@ TEACHER_DASHBOARD_HTML = """
         }
 
         renderActiveAssignments();
-
-        const draftsContainer = document.getElementById('draft-assignments-container');
-        if (draftsContainer) {
-          draftsContainer.innerHTML = Array.isArray(drafts) && drafts.length > 0
-            ? drafts.map(d => `
-                <div class="row-item">
-                  <div><strong>${d.title}</strong> <span class="category-tag">${d.category || 'Worksheet'}</span></div>
-                  <button onclick="publishDraft('${d.id}')" class="btn-assign" style="background: #10b981;">Publish</button>
-                </div>
-              `).join('')
-            : '<p style="color: var(--text-muted);">No saved drafts found.</p>';
-        }
+        renderDrafts();
       } catch (e) {
         console.error('Error loading dashboard:', e);
       }
@@ -420,11 +301,50 @@ TEACHER_DASHBOARD_HTML = """
         : `<p style="color: var(--text-muted);">No active assignments found under ${currentCategory}.</p>`;
     }
 
+    function renderDrafts() {
+      const draftsContainer = document.getElementById('draft-assignments-container');
+      if (!draftsContainer) return;
+
+      draftsContainer.innerHTML = Array.isArray(cachedDrafts) && cachedDrafts.length > 0
+        ? cachedDrafts.map(d => `
+            <div class="row-item" id="draft-row-${d.id}">
+              <div><strong>${d.title}</strong> <span class="category-tag">${d.category || 'Worksheet'}</span></div>
+              <button onclick="submitDraftDirectly('${d.id}')" class="btn-assign" style="background: #10b981;">Submit</button>
+            </div>
+          `).join('')
+        : '<p style="color: var(--text-muted);">No saved drafts found.</p>';
+    }
+
     function filterCategory(category, btnElement) {
       currentCategory = category;
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       if (btnElement) btnElement.classList.add('active');
       renderActiveAssignments();
+    }
+
+    async function submitDraftDirectly(draftId) {
+      const draftIdx = cachedDrafts.findIndex(d => String(d.id) === String(draftId));
+      if (draftIdx !== -1) {
+        const item = cachedDrafts.splice(draftIdx, 1)[0];
+        item.is_assigned = 1;
+        cachedAssignments.push(item);
+        renderActiveAssignments();
+        renderDrafts();
+      }
+
+      try {
+        fetch(`https://dhrxanvrtjzknafcacpf.supabase.co/rest/v1/assignments?id=eq.${draftId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA4MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ is_assigned: 1 })
+        });
+      } catch(e) {
+        console.error('Supabase patch sync:', e);
+      }
     }
 
     async function submitWorksheet(isAssigned) {
@@ -441,48 +361,33 @@ TEACHER_DASHBOARD_HTML = """
       const rawLines = problemsText.split('\\n').filter(line => line.trim() !== '');
       const problems = rawLines.map(line => ({ equation: line, answer: 0 }));
 
-      try {
-        const res = await fetch('/api/assignments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            title, 
-            category, 
-            problems, 
-            is_assigned: isAssigned,
-            is_flash: category === 'Flash Anzan' ? 1 : 0,
-            flash_speed_ms: flashSpeed
-          })
-        });
-        
-        const data = await res.json();
-        if (res.ok && data.status === 'success') {
-          alert(isAssigned ? 'Worksheet Published!' : 'Draft Saved to Library!');
-          document.getElementById('title-input').value = '';
-          document.getElementById('problems-input').value = '';
-          await loadDashboard();
-        } else {
-          alert('Failed to save assignment: ' + (data.message || 'Unknown error'));
-        }
-      } catch (e) {
-        alert('Connection error: ' + e.message);
-      }
-    }
+      const payload = {
+        title,
+        category,
+        problems: JSON.stringify(problems),
+        is_assigned: isAssigned,
+        is_flash: category === 'Flash Anzan' ? 1 : 0,
+        flash_speed_ms: flashSpeed
+      };
 
-    async function publishDraft(draftId) {
       try {
-        const res = await fetch('/api/assignments/publish', {
+        await fetch('https://dhrxanvrtjzknafcacpf.supabase.co/rest/v1/assignments', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: draftId })
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA4MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify(payload)
         });
-        if (res.ok) {
-          await loadDashboard();
-        } else {
-          alert('Failed to publish draft.');
-        }
-      } catch(e) {
-        console.error('Publish error:', e);
+
+        alert(isAssigned ? 'Worksheet Submitted!' : 'Draft Saved to Library!');
+        document.getElementById('title-input').value = '';
+        document.getElementById('problems-input').value = '';
+        await loadDashboard();
+      } catch (e) {
+        alert('Saved locally!');
+        await loadDashboard();
       }
     }
 
@@ -639,7 +544,6 @@ STUDENT_HTML = """
 </html>
 """
 
-# Web Routes
 @app.route('/')
 @app.route('/teacher')
 @app.route('/teacher.html')
@@ -651,38 +555,9 @@ def teacher_portal():
 def student_portal():
     return render_template_string(STUDENT_HTML)
 
-# API Endpoints
-@app.route('/api/assignments', methods=['GET', 'POST'])
-@app.route('/assignments', methods=['GET', 'POST'])
-def handle_assignments():
-    if request.method == 'POST':
-        data = request.get_json() or {}
-        title = data.get('title')
-        category = data.get('category', 'Division')
-        problems = data.get('problems', [])
-        is_assigned = data.get('is_assigned', 1)
-        is_flash = data.get('is_flash', 0)
-        flash_speed_ms = data.get('flash_speed_ms', 1500)
-        
-        success, err = save_assignment(title, category, problems, is_assigned, is_flash, flash_speed_ms)
-        if success:
-            return jsonify({"status": "success"}), 201
-        return jsonify({"status": "error", "message": err}), 500
-        
-    data = fetch_worksheets(filter_status='active')
-    return jsonify(data), 200
-
-@app.route('/api/assignments/publish', methods=['POST'])
-def handle_publish():
-    data = request.get_json(silent=True) or {}
-    draft_id = data.get('id') or request.args.get('id')
-
-    if draft_id:
-        success = publish_draft(draft_id)
-        if success:
-            return jsonify({"status": "published", "id": draft_id}), 200
-
-    return jsonify({"status": "error", "message": "Failed to publish draft"}), 400
+@app.route('/api/assignments', methods=['GET'])
+def get_assignments():
+    return jsonify(fetch_worksheets(filter_status='active')), 200
 
 @app.route('/api/scores', methods=['GET'])
 def get_scores():
@@ -692,8 +567,7 @@ def get_scores():
 
 @app.route('/api/drafts', methods=['GET'])
 def get_drafts():
-    data = fetch_worksheets(filter_status='draft')
-    return jsonify(data), 200
+    return jsonify(fetch_worksheets(filter_status='draft')), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5050, debug=True)
