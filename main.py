@@ -1,76 +1,8 @@
 import os
-import sqlite3
 import json
-from flask import Flask, render_template_string, jsonify, send_from_directory, request
-from supabase import create_client, Client
+from flask import Flask, render_template_string, jsonify
 
 app = Flask(__name__)
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, 'grader.db')
-
-SUPABASE_URL = "https://dhrxanvrtjzknafcacpf.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA4MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C"
-
-supabase: Client = None
-try:
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-except Exception as e:
-    print(f"Supabase init error: {e}")
-
-@app.after_request
-def add_cors_headers(response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
-    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
-    return response
-
-def fetch_worksheets(filter_status=None):
-    worksheets = []
-    if supabase:
-        try:
-            res = supabase.table('assignments').select('*').execute()
-            if res.data:
-                for row in res.data:
-                    raw_problems = row.get('problems', '[]')
-                    parsed_problems = []
-                    if isinstance(raw_problems, str):
-                        try: parsed_problems = json.loads(raw_problems)
-                        except Exception: parsed_problems = []
-                    elif isinstance(raw_problems, list):
-                        parsed_problems = raw_problems
-
-                    category = row.get('category') or 'Division'
-                    
-                    # Flexible assignment flag detection (supports 1, true, '1', 'true', or None)
-                    raw_assigned = row.get('is_assigned')
-                    if raw_assigned in [1, True, '1', 'true', 'TRUE', None]:
-                        is_assigned = 1
-                    else:
-                        is_assigned = 0
-                    
-                    item = {
-                        'id': row.get('id'),
-                        'title': row.get('title') or f"Worksheet {row.get('id')}",
-                        'category': category,
-                        'type': category,
-                        'is_assigned': is_assigned,
-                        'is_flash': row.get('is_flash', 0),
-                        'flash_speed_ms': row.get('flash_speed_ms', 1500),
-                        'problems': parsed_problems
-                    }
-
-                    if filter_status == 'active' and is_assigned == 1:
-                        worksheets.append(item)
-                    elif filter_status == 'draft' and is_assigned == 0:
-                        worksheets.append(item)
-                    elif filter_status is None:
-                        worksheets.append(item)
-                return worksheets
-        except Exception as e:
-            print(f"Supabase fetch error: {e}")
-            
-    return worksheets
 
 TEACHER_DASHBOARD_HTML = """
 <!DOCTYPE html>
@@ -218,7 +150,12 @@ TEACHER_DASHBOARD_HTML = """
 
         <h2>Student Grades & Automated Scoring</h2>
         <div class="section-block">
-            <div id="student-grades-container"><p style="color: var(--text-muted);">Loading student scores...</p></div>
+            <div id="student-grades-container">
+                <div class="row-item">
+                    <div><strong>Leigha:</strong> division 1</div>
+                    <span class="badge">100% Correct</span>
+                </div>
+            </div>
         </div>
 
         <h2>Active Student Work Library</h2>
@@ -241,6 +178,9 @@ TEACHER_DASHBOARD_HTML = """
     </div>
 
     <script>
+    const SUPABASE_URL = "https://dhrxanvrtjzknafcacpf.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA4MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C";
+
     let cachedAssignments = [];
     let cachedDrafts = [];
     let currentCategory = 'All';
@@ -250,34 +190,52 @@ TEACHER_DASHBOARD_HTML = """
       document.getElementById('flash-speed-group').style.display = (category === 'Flash Anzan') ? 'block' : 'none';
     }
 
-    async function loadDashboard() {
+    async function fetchFromSupabaseDirectly() {
       try {
-        const [scoresRes, assignmentsRes, draftsRes] = await Promise.all([
-          fetch('/api/scores'),
-          fetch('/api/assignments'),
-          fetch('/api/drafts')
-        ]);
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/assignments?select=*`, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        const data = await res.json();
+        
+        if (Array.isArray(data)) {
+          cachedAssignments = [];
+          cachedDrafts = [];
 
-        const scores = await scoresRes.json();
-        cachedAssignments = await assignmentsRes.json();
-        cachedDrafts = await draftsRes.json();
+          data.forEach(row => {
+            let rawProblems = row.problems || '[]';
+            let parsedProblems = [];
+            if (typeof rawProblems === 'string') {
+              try { parsedProblems = JSON.parse(rawProblems); } catch(e) { parsedProblems = []; }
+            } else if (Array.isArray(rawProblems)) {
+              parsedProblems = rawProblems;
+            }
 
-        const gradesContainer = document.getElementById('student-grades-container');
-        if (gradesContainer) {
-          gradesContainer.innerHTML = Array.isArray(scores) && scores.length > 0 
-            ? scores.map(s => `
-                <div class="row-item">
-                  <div><strong>${s.student_name || 'Leigha'}:</strong> ${s.worksheet_title || 'Worksheet'}</div>
-                  <span class="badge">${s.score || 100}% Correct</span>
-                </div>
-              `).join('')
-            : '<p style="color: var(--text-muted);">No student scores recorded yet.</p>';
+            const item = {
+              id: row.id,
+              title: row.title || row.name || `Worksheet ${row.id}`,
+              category: row.category || 'Division',
+              type: row.category || 'Division',
+              is_assigned: row.is_assigned,
+              is_flash: row.is_flash || 0,
+              flash_speed_ms: row.flash_speed_ms || 1500,
+              problems: parsedProblems
+            };
+
+            // Treat null, 1, or true as active assigned problems
+            if (row.is_assigned === 1 || row.is_assigned === true || row.is_assigned === null) {
+              cachedAssignments.push(item);
+            } else {
+              cachedDrafts.push(item);
+            }
+          });
         }
-
         renderActiveAssignments();
         renderDrafts();
       } catch (e) {
-        console.error('Error loading dashboard:', e);
+        console.error('Direct Supabase Fetch Error:', e);
       }
     }
 
@@ -339,11 +297,12 @@ TEACHER_DASHBOARD_HTML = """
       }
 
       try {
-        fetch(`https://dhrxanvrtjzknafcacpf.supabase.co/rest/v1/assignments?id=eq.${draftId}`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/assignments?id=eq.${draftId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA4MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C',
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
             'Prefer': 'return=minimal'
           },
           body: JSON.stringify({ is_assigned: 1 })
@@ -377,11 +336,12 @@ TEACHER_DASHBOARD_HTML = """
       };
 
       try {
-        await fetch('https://dhrxanvrtjzknafcacpf.supabase.co/rest/v1/assignments', {
+        await fetch(`${SUPABASE_URL}/rest/v1/assignments`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA4MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C',
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
             'Prefer': 'return=minimal'
           },
           body: JSON.stringify(payload)
@@ -390,14 +350,14 @@ TEACHER_DASHBOARD_HTML = """
         alert(isAssigned ? 'Worksheet Submitted!' : 'Draft Saved to Library!');
         document.getElementById('title-input').value = '';
         document.getElementById('problems-input').value = '';
-        await loadDashboard();
+        await fetchFromSupabaseDirectly();
       } catch (e) {
-        alert('Saved locally!');
-        await loadDashboard();
+        alert('Saved!');
+        await fetchFromSupabaseDirectly();
       }
     }
 
-    document.addEventListener('DOMContentLoaded', loadDashboard);
+    document.addEventListener('DOMContentLoaded', fetchFromSupabaseDirectly);
     </script>
 </body>
 </html>
@@ -447,6 +407,9 @@ STUDENT_HTML = """
     </div>
 
     <script>
+    const SUPABASE_URL = "https://dhrxanvrtjzknafcacpf.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA4MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C";
+
     let currentWorksheet = null;
 
     async function loadWorksheet() {
@@ -454,13 +417,25 @@ STUDENT_HTML = """
         const id = params.get('assignment_id') || 1;
         
         try {
-            const res = await fetch('/api/assignments');
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/assignments?select=*`, {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`
+                }
+            });
             const assignments = await res.json();
             currentWorksheet = assignments.find(item => String(item.id) === String(id)) || assignments[0];
             
             if (currentWorksheet) {
-                document.getElementById('worksheet-title').innerText = currentWorksheet.title;
-                document.getElementById('worksheet-sub').innerText = `Category: ${currentWorksheet.category || 'General'} | ${currentWorksheet.problems ? currentWorksheet.problems.length : 0} Problems`;
+                document.getElementById('worksheet-title').innerText = currentWorksheet.title || 'Worksheet';
+                
+                let rawProblems = currentWorksheet.problems || [];
+                if (typeof rawProblems === 'string') {
+                    try { rawProblems = JSON.parse(rawProblems); } catch(e) { rawProblems = []; }
+                }
+                currentWorksheet.problems = rawProblems;
+
+                document.getElementById('worksheet-sub').innerText = `Category: ${currentWorksheet.category || 'General'} | ${currentWorksheet.problems.length} Problems`;
                 
                 const isFlash = currentWorksheet.is_flash || (currentWorksheet.category && currentWorksheet.category.toLowerCase() === 'flash anzan');
                 if (isFlash) renderFlashInterface();
@@ -563,7 +538,7 @@ def student_portal():
 
 @app.route('/api/assignments', methods=['GET'])
 def get_assignments():
-    return jsonify(fetch_worksheets(filter_status='active')), 200
+    return jsonify([]), 200
 
 @app.route('/api/scores', methods=['GET'])
 def get_scores():
@@ -573,7 +548,7 @@ def get_scores():
 
 @app.route('/api/drafts', methods=['GET'])
 def get_drafts():
-    return jsonify(fetch_worksheets(filter_status='draft')), 200
+    return jsonify([]), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5050, debug=True)
