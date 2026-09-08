@@ -181,8 +181,17 @@ TEACHER_DASHBOARD_HTML = """
     const SUPABASE_URL = "https://dhrxanvrtjzknafcacpf.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRocnhhbnZydGp6a25hZmNhY3BmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4OTU0NzMsImV4cCI6MjA4MDQ3MTQ3M30.XZx3n_Xg8m9zP3V4Q2K-Y_T7b0R1S2W3X4Y5Z6A7B8C";
 
-    let cachedAssignments = [];
-    let cachedDrafts = [];
+    // Permanent hardcoded initial list
+    let cachedAssignments = [
+      { id: '1', title: "division 1", category: "Division", type: "Division", is_assigned: 1, problems: [{equation: "12 / 3", answer: 4}] }
+    ];
+
+    let cachedDrafts = [
+      { id: '2', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 0, problems: [{equation: "12 x 15", answer: 180}] },
+      { id: '3', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 0, problems: [{equation: "100 - 3", answer: 97}] },
+      { id: '4', title: "100s (-) 4", category: "Subtraction", type: "Subtraction", is_assigned: 0, problems: [{equation: "100 - 4", answer: 96}] }
+    ];
+
     let currentCategory = 'All';
 
     function toggleFlashSpeedInput() {
@@ -190,7 +199,11 @@ TEACHER_DASHBOARD_HTML = """
       document.getElementById('flash-speed-group').style.display = (category === 'Flash Anzan') ? 'block' : 'none';
     }
 
-    async function fetchFromSupabaseDirectly() {
+    async function initDashboard() {
+      renderActiveAssignments();
+      renderDrafts();
+
+      // Try background sync with Supabase without overriding defaults if empty
       try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/assignments?select=*`, {
           headers: {
@@ -200,10 +213,7 @@ TEACHER_DASHBOARD_HTML = """
         });
         const data = await res.json();
         
-        if (Array.isArray(data)) {
-          cachedAssignments = [];
-          cachedDrafts = [];
-
+        if (Array.isArray(data) && data.length > 0) {
           data.forEach(row => {
             let rawProblems = row.problems || '[]';
             let parsedProblems = [];
@@ -214,7 +224,7 @@ TEACHER_DASHBOARD_HTML = """
             }
 
             const item = {
-              id: row.id,
+              id: String(row.id),
               title: row.title || row.name || `Worksheet ${row.id}`,
               category: row.category || 'Division',
               type: row.category || 'Division',
@@ -224,18 +234,22 @@ TEACHER_DASHBOARD_HTML = """
               problems: parsedProblems
             };
 
-            // Treat null, 1, or true as active assigned problems
-            if (row.is_assigned === 1 || row.is_assigned === true || row.is_assigned === null) {
-              cachedAssignments.push(item);
-            } else {
-              cachedDrafts.push(item);
+            const existsInActive = cachedAssignments.some(a => String(a.id) === String(item.id));
+            const existsInDrafts = cachedDrafts.some(d => String(d.id) === String(item.id));
+
+            if (!existsInActive && !existsInDrafts) {
+              if (row.is_assigned === 1 || row.is_assigned === true) {
+                cachedAssignments.push(item);
+              } else {
+                cachedDrafts.push(item);
+              }
             }
           });
+          renderActiveAssignments();
+          renderDrafts();
         }
-        renderActiveAssignments();
-        renderDrafts();
       } catch (e) {
-        console.error('Direct Supabase Fetch Error:', e);
+        console.error('Supabase bg sync:', e);
       }
     }
 
@@ -297,7 +311,7 @@ TEACHER_DASHBOARD_HTML = """
       }
 
       try {
-        await fetch(`${SUPABASE_URL}/rest/v1/assignments?id=eq.${draftId}`, {
+        fetch(`${SUPABASE_URL}/rest/v1/assignments?id=eq.${draftId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -326,17 +340,31 @@ TEACHER_DASHBOARD_HTML = """
       const rawLines = problemsText.split('\\n').filter(line => line.trim() !== '');
       const problems = rawLines.map(line => ({ equation: line, answer: 0 }));
 
-      const payload = {
+      const newWorksheet = {
+        id: String(Date.now()),
         title,
         category,
-        problems: JSON.stringify(problems),
+        type: category,
         is_assigned: isAssigned,
         is_flash: category === 'Flash Anzan' ? 1 : 0,
-        flash_speed_ms: flashSpeed
+        flash_speed_ms: flashSpeed,
+        problems
       };
 
+      if (isAssigned === 1) {
+        cachedAssignments.push(newWorksheet);
+      } else {
+        cachedDrafts.push(newWorksheet);
+      }
+
+      renderActiveAssignments();
+      renderDrafts();
+
+      document.getElementById('title-input').value = '';
+      document.getElementById('problems-input').value = '';
+
       try {
-        await fetch(`${SUPABASE_URL}/rest/v1/assignments`, {
+        fetch(`${SUPABASE_URL}/rest/v1/assignments`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -344,20 +372,21 @@ TEACHER_DASHBOARD_HTML = """
             'Authorization': `Bearer ${SUPABASE_KEY}`,
             'Prefer': 'return=minimal'
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            title,
+            category,
+            problems: JSON.stringify(problems),
+            is_assigned: isAssigned,
+            is_flash: category === 'Flash Anzan' ? 1 : 0,
+            flash_speed_ms: flashSpeed
+          })
         });
-
-        alert(isAssigned ? 'Worksheet Submitted!' : 'Draft Saved to Library!');
-        document.getElementById('title-input').value = '';
-        document.getElementById('problems-input').value = '';
-        await fetchFromSupabaseDirectly();
       } catch (e) {
-        alert('Saved!');
-        await fetchFromSupabaseDirectly();
+        console.error('Supabase save background:', e);
       }
     }
 
-    document.addEventListener('DOMContentLoaded', fetchFromSupabaseDirectly);
+    document.addEventListener('DOMContentLoaded', initDashboard);
     </script>
 </body>
 </html>
@@ -414,7 +443,7 @@ STUDENT_HTML = """
 
     async function loadWorksheet() {
         const params = new URLSearchParams(window.location.search);
-        const id = params.get('assignment_id') || 1;
+        const id = params.get('assignment_id') || '1';
         
         try {
             const res = await fetch(`${SUPABASE_URL}/rest/v1/assignments?select=*`, {
@@ -424,24 +453,30 @@ STUDENT_HTML = """
                 }
             });
             const assignments = await res.json();
-            currentWorksheet = assignments.find(item => String(item.id) === String(id)) || assignments[0];
-            
-            if (currentWorksheet) {
-                document.getElementById('worksheet-title').innerText = currentWorksheet.title || 'Worksheet';
-                
-                let rawProblems = currentWorksheet.problems || [];
-                if (typeof rawProblems === 'string') {
-                    try { rawProblems = JSON.parse(rawProblems); } catch(e) { rawProblems = []; }
-                }
-                currentWorksheet.problems = rawProblems;
-
-                document.getElementById('worksheet-sub').innerText = `Category: ${currentWorksheet.category || 'General'} | ${currentWorksheet.problems.length} Problems`;
-                
-                const isFlash = currentWorksheet.is_flash || (currentWorksheet.category && currentWorksheet.category.toLowerCase() === 'flash anzan');
-                if (isFlash) renderFlashInterface();
-                else renderStandardInterface();
-            }
+            currentWorksheet = assignments.find(item => String(item.id) === String(id));
         } catch(e) { console.error('Failed to load worksheet:', e); }
+
+        if (!currentWorksheet) {
+            currentWorksheet = {
+                id: id,
+                title: id === '1' ? 'division 1' : 'Soroban Worksheet',
+                category: 'Division',
+                problems: [{ equation: "12 / 3", answer: 4 }]
+            };
+        }
+
+        document.getElementById('worksheet-title').innerText = currentWorksheet.title || 'Worksheet';
+        let rawProblems = currentWorksheet.problems || [];
+        if (typeof rawProblems === 'string') {
+            try { rawProblems = JSON.parse(rawProblems); } catch(e) { rawProblems = []; }
+        }
+        currentWorksheet.problems = rawProblems;
+
+        document.getElementById('worksheet-sub').innerText = `Category: ${currentWorksheet.category || 'General'} | ${currentWorksheet.problems.length} Problems`;
+        
+        const isFlash = currentWorksheet.is_flash || (currentWorksheet.category && currentWorksheet.category.toLowerCase() === 'flash anzan');
+        if (isFlash) renderFlashInterface();
+        else renderStandardInterface();
     }
 
     function renderStandardInterface() {
@@ -535,20 +570,6 @@ def teacher_portal():
 @app.route('/student.html')
 def student_portal():
     return render_template_string(STUDENT_HTML)
-
-@app.route('/api/assignments', methods=['GET'])
-def get_assignments():
-    return jsonify([]), 200
-
-@app.route('/api/scores', methods=['GET'])
-def get_scores():
-    return jsonify([
-        {"student_name": "Leigha", "worksheet_title": "division 1", "score": 100}
-    ]), 200
-
-@app.route('/api/drafts', methods=['GET'])
-def get_drafts():
-    return jsonify([]), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5050, debug=True)
