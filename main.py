@@ -69,10 +69,19 @@ def save_assignment(title, category, problems, is_assigned, is_flash, flash_spee
 
 def publish_draft(draft_id):
     """Updates draft state (is_assigned = 1) in Supabase or SQLite."""
+    if not draft_id:
+        return False
+
     if supabase:
         try:
-            supabase.table('assignments').update({'is_assigned': 1}).eq('id', draft_id).execute()
-            return True
+            try:
+                target_id = int(draft_id)
+            except ValueError:
+                target_id = str(draft_id)
+
+            res = supabase.table('assignments').update({'is_assigned': 1}).eq('id', target_id).execute()
+            if res.data:
+                return True
         except Exception as e:
             print(f"Supabase publish failed: {e}")
 
@@ -375,7 +384,7 @@ TEACHER_DASHBOARD_HTML = """
             ? drafts.map(d => `
                 <div class="row-item">
                   <div><strong>${d.title}</strong> <span class="category-tag">${d.category || 'Worksheet'}</span></div>
-                  <button onclick="publishDraft(${d.id})" class="btn-assign" style="background: #10b981;">Publish</button>
+                  <button onclick="publishDraft('${d.id}')" class="btn-assign" style="background: #10b981;">Publish</button>
                 </div>
               `).join('')
             : '<p style="color: var(--text-muted);">No saved drafts found.</p>';
@@ -462,8 +471,16 @@ TEACHER_DASHBOARD_HTML = """
 
     async function publishDraft(draftId) {
       try {
-        await fetch(`/api/assignments/publish?id=${draftId}`, { method: 'POST' });
-        await loadDashboard();
+        const res = await fetch('/api/assignments/publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: draftId })
+        });
+        if (res.ok) {
+          await loadDashboard();
+        } else {
+          alert('Failed to publish draft.');
+        }
       } catch(e) {
         console.error('Publish error:', e);
       }
@@ -657,10 +674,15 @@ def handle_assignments():
 
 @app.route('/api/assignments/publish', methods=['POST'])
 def handle_publish():
-    draft_id = request.args.get('id')
+    data = request.get_json(silent=True) or {}
+    draft_id = data.get('id') or request.args.get('id')
+
     if draft_id:
-        publish_draft(draft_id)
-    return jsonify({"status": "published"}), 200
+        success = publish_draft(draft_id)
+        if success:
+            return jsonify({"status": "published", "id": draft_id}), 200
+
+    return jsonify({"status": "error", "message": "Failed to publish draft"}), 400
 
 @app.route('/api/scores', methods=['GET'])
 def get_scores():
