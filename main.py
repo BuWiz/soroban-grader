@@ -240,13 +240,22 @@ TEACHER_DASHBOARD_HTML = """
     let currentCategory = 'All';
 
     function loadStore() {
-      localStorage.setItem('soroban_clean_4_sets_v1', JSON.stringify(INITIAL_ASSIGNMENTS));
+      // Clear all legacy keys
+      localStorage.removeItem('soroban_worksheets');
+      localStorage.removeItem('soroban_worksheets_v2');
+      localStorage.removeItem('soroban_colorful_store');
+      localStorage.removeItem('soroban_exact_orig');
+      localStorage.removeItem('soroban_full_problems_v3');
+      localStorage.removeItem('soroban_clean_4_sets_v1');
+
+      // Set clean state
+      localStorage.setItem('soroban_fixed_v99', JSON.stringify(INITIAL_ASSIGNMENTS));
       store = INITIAL_ASSIGNMENTS;
       renderAll();
     }
 
     function saveStore() {
-      localStorage.setItem('soroban_clean_4_sets_v1', JSON.stringify(store));
+      localStorage.setItem('soroban_fixed_v99', JSON.stringify(store));
     }
 
     function toggleFlashSpeedInput() {
@@ -642,7 +651,7 @@ STUDENT_HTML = """
     let store = [];
 
     function initStudentPortal() {
-        const saved = localStorage.getItem('soroban_clean_4_sets_v1');
+        const saved = localStorage.getItem('soroban_fixed_v99');
         if (saved) {
             try { store = JSON.parse(saved); } catch(e) { store = INITIAL_ASSIGNMENTS; }
         } else {
