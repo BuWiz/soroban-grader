@@ -15,7 +15,7 @@ TEACHER_DASHBOARD_HTML = """
             --primary: #2563eb;
             --primary-dark: #1d4ed8;
             --secondary: #64748b;
-            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --bg-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
             --card-bg: #ffffff;
             --text-dark: #0f172a;
             --text-muted: #64748b;
@@ -35,9 +35,9 @@ TEACHER_DASHBOARD_HTML = """
             max-width: 960px;
             margin: 0 auto;
             background: var(--card-bg);
-            border-radius: 16px;
+            border-radius: 20px;
             padding: 35px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.15);
         }
 
         .header {
@@ -49,11 +49,12 @@ TEACHER_DASHBOARD_HTML = """
             margin-bottom: 25px;
         }
 
-        .header h1 { margin: 0; font-size: 2em; font-weight: 800; color: #1e3a8a; }
+        .header h1 { margin: 0; font-size: 2.2em; font-weight: 800; color: #1e3a8a; }
 
         .btn-switch {
-            background: #0284c7; color: white; text-decoration: none; padding: 10px 18px;
-            border-radius: 8px; font-weight: 700; font-size: 0.9em; cursor: pointer; display: inline-block;
+            background: linear-gradient(135deg, #0284c7, #2563eb); color: white; text-decoration: none; padding: 12px 20px;
+            border-radius: 10px; font-weight: 700; font-size: 0.95em; cursor: pointer; display: inline-block;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); border: none;
         }
 
         .form-group { margin-bottom: 20px; }
@@ -61,50 +62,52 @@ TEACHER_DASHBOARD_HTML = """
         label { display: block; font-weight: 700; margin-bottom: 8px; color: var(--text-dark); }
 
         input[type="text"], input[type="number"], textarea, select {
-            width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px;
+            width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 10px;
             font-family: inherit; font-size: 0.95em; box-sizing: border-box; outline: none;
         }
 
         .btn-group { display: flex; gap: 12px; margin-top: 15px; }
 
         .btn {
-            padding: 11px 22px; background: var(--primary); color: white; border: none;
-            border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.95em;
+            padding: 12px 24px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none;
+            border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.95em;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
 
-        .btn-secondary { background: var(--secondary); }
+        .btn-secondary { background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3); }
 
         .btn-assign {
-            background: var(--primary); color: white; padding: 6px 14px; border-radius: 6px;
-            text-decoration: none; font-weight: 700; font-size: 0.85em; border: none; cursor: pointer;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 8px 16px; border-radius: 8px;
+            text-decoration: none; font-weight: 700; font-size: 0.88em; border: none; cursor: pointer;
         }
 
         hr { border: none; border-top: 2px solid #e2e8f0; margin: 30px 0; }
 
-        h2 { font-size: 1.3em; color: #1e293b; margin-top: 0; margin-bottom: 12px; }
+        h2 { font-size: 1.35em; color: #1e293b; margin-top: 0; margin-bottom: 14px; }
 
         .section-block {
-            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 25px;
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 22px; margin-bottom: 25px;
         }
 
         .tabs-container {
-            display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;
+            display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px;
         }
 
         .tab-btn {
-            padding: 8px 16px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px;
-            font-weight: 700; font-size: 0.88em; color: #475569; cursor: pointer;
+            padding: 8px 18px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px;
+            font-weight: 700; font-size: 0.88em; color: #475569; cursor: pointer; transition: all 0.2s;
         }
 
-        .tab-btn.active { background: #2563eb; color: #ffffff; border-color: #2563eb; }
+        .tab-btn.active { background: #2563eb; color: #ffffff; border-color: #2563eb; box-shadow: 0 3px 8px rgba(37, 99, 235, 0.3); }
 
         .row-item {
-            background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px;
-            margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+            background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px;
+            margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
         }
 
-        .badge { background: #dcfce7; color: #15803d; font-weight: 800; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; }
-        .category-tag { background: #e0f2fe; color: #0369a1; font-size: 0.8em; font-weight: 700; padding: 3px 8px; border-radius: 6px; margin-left: 8px; }
+        .badge { background: #dcfce7; color: #15803d; font-weight: 800; padding: 5px 12px; border-radius: 12px; font-size: 0.85em; }
+        .category-tag { background: #e0f2fe; color: #0369a1; font-size: 0.8em; font-weight: 700; padding: 4px 10px; border-radius: 8px; margin-left: 8px; }
     </style>
 </head>
 <body>
@@ -116,16 +119,16 @@ TEACHER_DASHBOARD_HTML = """
 
         <div class="form-group">
             <label>Assignment Title:</label>
-            <input type="text" id="title-input" placeholder="e.g. Flash Anzan Set 1">
+            <input type="text" id="title-input" placeholder="e.g. Addition Set 1">
         </div>
 
         <div class="form-group">
             <label>Worksheet Category:</label>
             <select id="category-input" onchange="toggleFlashSpeedInput()">
+                <option value="Addition">Addition</option>
                 <option value="Division">Division</option>
                 <option value="Multiplication">Multiplication</option>
                 <option value="Subtraction">Subtraction</option>
-                <option value="Addition">Addition</option>
                 <option value="Flash Anzan">Flash Anzan</option>
             </select>
         </div>
@@ -137,7 +140,7 @@ TEACHER_DASHBOARD_HTML = """
 
         <div class="form-group">
             <label>Parsed Problems (One math expression per line):</label>
-            <textarea id="problems-input" rows="4" placeholder="5, -3, +8, +6, -4&#10;9, +1, -2, +3, -7"></textarea>
+            <textarea id="problems-input" rows="4" placeholder="5, +3, +8, +6, +4&#10;9, +1, +2, +3, +7"></textarea>
         </div>
 
         <div class="btn-group">
@@ -161,10 +164,10 @@ TEACHER_DASHBOARD_HTML = """
         <div class="section-block">
             <div class="tabs-container">
                 <button class="tab-btn active" onclick="filterCategory('All', this)">All</button>
+                <button class="tab-btn" onclick="filterCategory('Addition', this)">Addition</button>
                 <button class="tab-btn" onclick="filterCategory('Division', this)">Division</button>
                 <button class="tab-btn" onclick="filterCategory('Multiplication', this)">Multiplication</button>
                 <button class="tab-btn" onclick="filterCategory('Subtraction', this)">Subtraction</button>
-                <button class="tab-btn" onclick="filterCategory('Addition', this)">Addition</button>
                 <button class="tab-btn" onclick="filterCategory('Flash Anzan', this)">Flash Anzan</button>
             </div>
             <div id="active-assignments-container"></div>
@@ -178,17 +181,19 @@ TEACHER_DASHBOARD_HTML = """
 
     <script>
     const INITIAL_ASSIGNMENTS = [
-      { id: '1', title: "division 1", category: "Division", type: "Division", is_assigned: 1, problems: [{equation: "12 / 3", answer: 4}] },
-      { id: '2', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 0, problems: [{equation: "12 x 15", answer: 180}] },
-      { id: '3', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 0, problems: [{"equation": "100 - 3", "answer": 97}] },
-      { id: '4', title: "100s (-) 4", category: "Subtraction", type: "Subtraction", is_assigned: 0, problems: [{"equation": "100 - 4", "answer": 96}] }
+      { id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, problems: [{equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}] },
+      { id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, problems: [{equation: "12 / 3", answer: 4}] },
+      { id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 0, problems: [{equation: "12 x 15", answer: 180}] },
+      { id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 0, problems: [{"equation": "100 - 3", "answer": 97}] },
+      { id: '5', title: "100s (-) 4", category: "Subtraction", type: "Subtraction", is_assigned: 0, problems: [{"equation": "100 - 4", "answer": 96}] },
+      { id: '6', title: "Flash Anzan Level 1", category: "Flash Anzan", type: "Flash Anzan", is_assigned: 1, is_flash: 1, flash_speed_ms: 1200, problems: [{"equation": "5, +3, -2, +4", "answer": 10}] }
     ];
 
     let store = [];
     let currentCategory = 'All';
 
     function loadStore() {
-      const saved = localStorage.getItem('soroban_worksheets');
+      const saved = localStorage.getItem('soroban_worksheets_v2');
       if (saved) {
         try { store = JSON.parse(saved); } catch(e) { store = INITIAL_ASSIGNMENTS; }
       } else {
@@ -199,7 +204,7 @@ TEACHER_DASHBOARD_HTML = """
     }
 
     function saveStore() {
-      localStorage.setItem('soroban_worksheets', JSON.stringify(store));
+      localStorage.setItem('soroban_worksheets_v2', JSON.stringify(store));
     }
 
     function toggleFlashSpeedInput() {
@@ -227,7 +232,7 @@ TEACHER_DASHBOARD_HTML = """
         ? activeItems.map(a => `
             <div class="row-item">
               <div>
-                <a href="/student?assignment_id=${a.id}" style="font-weight: bold; text-decoration: underline; color: #0066cc; font-size: 1.1em;">
+                <a href="/student?assignment_id=${a.id}" style="font-weight: bold; text-decoration: underline; color: #2563eb; font-size: 1.1em;">
                   ${a.title}
                 </a> 
                 <span class="category-tag">${a.category || 'Worksheet'}</span>
@@ -248,7 +253,7 @@ TEACHER_DASHBOARD_HTML = """
         ? draftItems.map(d => `
             <div class="row-item">
               <div><strong>${d.title}</strong> <span class="category-tag">${d.category || 'Worksheet'}</span></div>
-              <button onclick="submitDraftDirectly('${d.id}')" class="btn-assign" style="background: #10b981;">Submit</button>
+              <button onclick="submitDraftDirectly('${d.id}')" class="btn-assign" style="background: linear-gradient(135deg, #10b981, #059669);">Submit</button>
             </div>
           `).join('')
         : '<p style="color: var(--text-muted);">No saved drafts found.</p>';
@@ -284,7 +289,7 @@ TEACHER_DASHBOARD_HTML = """
       const rawLines = problemsText.split('\\n').filter(line => line.trim() !== '');
       const problems = rawLines.length > 0 
         ? rawLines.map(line => ({ equation: line, answer: 0 }))
-        : [{ equation: "10 - 2", answer: 8 }];
+        : [{ equation: "10 + 5", answer: 15 }];
 
       const newItem = {
         id: String(Date.now()),
@@ -320,24 +325,119 @@ STUDENT_HTML = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Soroban Practice Worksheet</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; background: #eef2f5; margin: 0; }
-        .card { max-width: 800px; margin: 0 auto; background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .home-btn { background: #2563eb; color: white; text-decoration: none; font-weight: bold; padding: 10px 18px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.95em; cursor: pointer; }
-        .select-assignment { padding: 8px 12px; border-radius: 6px; border: 2px solid #cbd5e1; font-weight: bold; color: #1e293b; background: #f8fafc; cursor: pointer; }
-        h1 { color: #1a202c; margin-top: 10px; margin-bottom: 5px; font-size: 1.8em; }
-        .subtitle { color: #4a5568; margin-bottom: 25px; }
-        .problem-card { border: 2px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px; background: #f8fafc; }
-        .problem-header { font-weight: bold; color: #4a5568; margin-bottom: 8px; }
-        .equation { font-size: 1.6em; font-weight: 700; color: #1a202c; letter-spacing: 1px; margin-bottom: 12px; }
-        .flash-display-box {
-            background: #0f172a; color: #38bdf8; font-size: 3.5em; font-weight: 900;
-            text-align: center; height: 180px; display: flex; align-items: center;
-            justify-content: center; border-radius: 10px; margin-bottom: 20px; letter-spacing: 2px;
+        :root {
+            --bg-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
         }
-        input[type="number"] { padding: 12px 16px; font-size: 1.2em; width: 180px; border: 2px solid #cbd5e0; border-radius: 6px; outline: none; }
-        .btn-submit { background: #10b981; color: white; border: none; padding: 14px 28px; font-size: 1.1em; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 15px; }
-        .btn-flash-start { background: #2563eb; color: white; border: none; padding: 14px 28px; font-size: 1.2em; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 30px 15px; 
+            background: var(--bg-gradient); 
+            min-height: 100vh;
+            margin: 0; 
+            box-sizing: border-box;
+        }
+        .card { 
+            max-width: 820px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 35px; 
+            border-radius: 20px; 
+            box-shadow: 0 20px 35px rgba(0,0,0,0.15); 
+        }
+        .top-nav { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .home-btn { 
+            background: linear-gradient(135deg, #2563eb, #1d4ed8); 
+            color: white; 
+            border: none;
+            font-weight: bold; 
+            padding: 10px 18px; 
+            border-radius: 10px; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px; 
+            font-size: 0.95em; 
+            cursor: pointer; 
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        .select-assignment { 
+            padding: 10px 14px; 
+            border-radius: 8px; 
+            border: 2px solid #cbd5e1; 
+            font-weight: bold; 
+            color: #1e293b; 
+            background: #f8fafc; 
+            cursor: pointer; 
+            outline: none;
+        }
+        h1 { color: #1e3a8a; margin-top: 10px; margin-bottom: 5px; font-size: 2em; font-weight: 800; }
+        .subtitle { color: #64748b; margin-bottom: 25px; font-weight: 600; }
+        .problem-card { 
+            border: 2px solid #e2e8f0; 
+            border-radius: 12px; 
+            padding: 22px; 
+            margin-bottom: 20px; 
+            background: #f8fafc; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        .problem-header { font-weight: bold; color: #3b82f6; margin-bottom: 8px; font-size: 1.05em; }
+        .equation { font-size: 2em; font-weight: 800; color: #0f172a; letter-spacing: 1px; margin-bottom: 14px; }
+        .flash-display-box {
+            background: linear-gradient(135deg, #0f172a, #1e293b); 
+            color: #38bdf8; 
+            font-size: 4em; 
+            font-weight: 900;
+            text-align: center; 
+            height: 200px; 
+            display: flex; 
+            align-items: center;
+            justify-content: center; 
+            border-radius: 16px; 
+            margin-bottom: 20px; 
+            letter-spacing: 2px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        input[type="number"] { 
+            padding: 12px 16px; 
+            font-size: 1.2em; 
+            width: 200px; 
+            border: 2px solid #cbd5e0; 
+            border-radius: 8px; 
+            outline: none; 
+            font-weight: 700;
+        }
+        input[type="number"]:focus { border-color: #2563eb; }
+        .btn-submit { 
+            background: linear-gradient(135deg, #10b981, #059669); 
+            color: white; 
+            border: none; 
+            padding: 16px 28px; 
+            font-size: 1.15em; 
+            font-weight: bold; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            width: 100%; 
+            margin-top: 15px; 
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+        }
+        .btn-flash-start { 
+            background: linear-gradient(135deg, #2563eb, #1d4ed8); 
+            color: white; 
+            border: none; 
+            padding: 16px 28px; 
+            font-size: 1.25em; 
+            font-weight: bold; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            width: 100%; 
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -352,7 +452,7 @@ STUDENT_HTML = """
         </div>
         <h1 id="worksheet-title">Loading Worksheet...</h1>
         <p class="subtitle" id="worksheet-sub">Soroban Grader Session</p>
-        <hr style="border: none; border-top: 1px solid #e2e8f0; margin-bottom: 25px;">
+        <hr style="border: none; border-top: 2px solid #f1f5f9; margin-bottom: 25px;">
         
         <form id="worksheet-form" onsubmit="event.preventDefault(); alert('Worksheet submitted successfully!');">
             <div id="problems-list"><p>Loading problems...</p></div>
@@ -368,7 +468,7 @@ STUDENT_HTML = """
         const params = new URLSearchParams(window.location.search);
         const id = params.get('assignment_id');
         
-        const saved = localStorage.getItem('soroban_worksheets');
+        const saved = localStorage.getItem('soroban_worksheets_v2');
         let store = [];
         if (saved) {
             try { store = JSON.parse(saved); } catch(e) {}
@@ -376,10 +476,9 @@ STUDENT_HTML = """
 
         allAssigned = store.filter(item => item.is_assigned === 1);
         if (allAssigned.length === 0) {
-            allAssigned = store; // fallback to show all if none flagged active
+            allAssigned = store;
         }
 
-        // Build dropdown options
         const picker = document.getElementById('assignment-picker');
         if (picker && allAssigned.length > 0) {
             picker.innerHTML = allAssigned.map(item => `
@@ -399,9 +498,9 @@ STUDENT_HTML = """
         if (!currentWorksheet) {
             currentWorksheet = {
                 id: '1',
-                title: 'division 1',
-                category: 'Division',
-                problems: [{ equation: "12 / 3", answer: 4 }]
+                title: 'addition 1',
+                category: 'Addition',
+                problems: [{ equation: "15 + 27", answer: 42 }]
             };
         }
 
