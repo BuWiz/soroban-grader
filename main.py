@@ -13,12 +13,9 @@ TEACHER_DASHBOARD_HTML = """
     <style>
         :root {
             --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --secondary: #64748b;
-            --bg-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+            --bg-gradient: linear-gradient(135deg, #b2e2f8 0%, #e0e7ff 100%);
             --card-bg: #ffffff;
-            --text-dark: #0f172a;
-            --text-muted: #64748b;
+            --text-dark: #1e293b;
             --border: #cbd5e1;
         }
 
@@ -35,9 +32,9 @@ TEACHER_DASHBOARD_HTML = """
             max-width: 960px;
             margin: 0 auto;
             background: var(--card-bg);
-            border-radius: 20px;
+            border-radius: 24px;
             padding: 35px;
-            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
         }
 
         .header {
@@ -49,12 +46,12 @@ TEACHER_DASHBOARD_HTML = """
             margin-bottom: 25px;
         }
 
-        .header h1 { margin: 0; font-size: 2.2em; font-weight: 800; color: #1e3a8a; }
+        .header h1 { margin: 0; font-size: 2.2em; font-weight: 800; color: #312e81; }
 
         .btn-switch {
-            background: linear-gradient(135deg, #0284c7, #2563eb); color: white; text-decoration: none; padding: 12px 20px;
-            border-radius: 10px; font-weight: 700; font-size: 0.95em; cursor: pointer; display: inline-block;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); border: none;
+            background: #2563eb; color: white; text-decoration: none; padding: 12px 22px;
+            border-radius: 14px; font-weight: 800; font-size: 0.95em; cursor: pointer; display: inline-block;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3); border: none;
         }
 
         .form-group { margin-bottom: 20px; }
@@ -62,31 +59,31 @@ TEACHER_DASHBOARD_HTML = """
         label { display: block; font-weight: 700; margin-bottom: 8px; color: var(--text-dark); }
 
         input[type="text"], input[type="number"], textarea, select {
-            width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 10px;
+            width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 12px;
             font-family: inherit; font-size: 0.95em; box-sizing: border-box; outline: none;
         }
 
         .btn-group { display: flex; gap: 12px; margin-top: 15px; }
 
         .btn {
-            padding: 12px 24px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none;
-            border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.95em;
+            padding: 12px 24px; background: #2563eb; color: white; border: none;
+            border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 0.95em;
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
 
-        .btn-secondary { background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3); }
+        .btn-secondary { background: #64748b; }
 
         .btn-assign {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 8px 16px; border-radius: 8px;
-            text-decoration: none; font-weight: 700; font-size: 0.88em; border: none; cursor: pointer;
+            background: #10b981; color: white; padding: 8px 18px; border-radius: 10px;
+            text-decoration: none; font-weight: 800; font-size: 0.88em; border: none; cursor: pointer;
         }
 
         hr { border: none; border-top: 2px solid #e2e8f0; margin: 30px 0; }
 
-        h2 { font-size: 1.35em; color: #1e293b; margin-top: 0; margin-bottom: 14px; }
+        h2 { font-size: 1.35em; color: #1e293b; margin-top: 0; margin-bottom: 14px; font-weight: 800; }
 
         .section-block {
-            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 22px; margin-bottom: 25px;
+            background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 16px; padding: 22px; margin-bottom: 25px;
         }
 
         .tabs-container {
@@ -98,16 +95,15 @@ TEACHER_DASHBOARD_HTML = """
             font-weight: 700; font-size: 0.88em; color: #475569; cursor: pointer; transition: all 0.2s;
         }
 
-        .tab-btn.active { background: #2563eb; color: #ffffff; border-color: #2563eb; box-shadow: 0 3px 8px rgba(37, 99, 235, 0.3); }
+        .tab-btn.active { background: #2563eb; color: #ffffff; border-color: #2563eb; }
 
         .row-item {
-            background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px;
+            background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px;
             margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
         }
 
         .badge { background: #dcfce7; color: #15803d; font-weight: 800; padding: 5px 12px; border-radius: 12px; font-size: 0.85em; }
-        .category-tag { background: #e0f2fe; color: #0369a1; font-size: 0.8em; font-weight: 700; padding: 4px 10px; border-radius: 8px; margin-left: 8px; }
+        .category-tag { background: #e0f2fe; color: #0369a1; font-size: 0.8em; font-weight: 800; padding: 4px 10px; border-radius: 8px; margin-left: 8px; }
     </style>
 </head>
 <body>
@@ -182,18 +178,17 @@ TEACHER_DASHBOARD_HTML = """
     <script>
     const INITIAL_ASSIGNMENTS = [
       { id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, problems: [{equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}] },
-      { id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, problems: [{equation: "12 / 3", answer: 4}] },
-      { id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 0, problems: [{equation: "12 x 15", answer: 180}] },
-      { id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 0, problems: [{"equation": "100 - 3", "answer": 97}] },
-      { id: '5', title: "100s (-) 4", category: "Subtraction", type: "Subtraction", is_assigned: 0, problems: [{"equation": "100 - 4", "answer": 96}] },
-      { id: '6', title: "Flash Anzan Level 1", category: "Flash Anzan", type: "Flash Anzan", is_assigned: 1, is_flash: 1, flash_speed_ms: 1200, problems: [{"equation": "5, +3, -2, +4", "answer": 10}] }
+      { id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, problems: [{equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}] },
+      { id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 1, problems: [{equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}] },
+      { id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 1, problems: [{equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}] },
+      { id: '5', title: "100s (-) 4", category: "Subtraction", type: "Subtraction", is_assigned: 1, problems: [{equation: "100 - 4", answer: 96}, {equation: "100 - 18", answer: 82}] }
     ];
 
     let store = [];
     let currentCategory = 'All';
 
     function loadStore() {
-      const saved = localStorage.getItem('soroban_worksheets_v2');
+      const saved = localStorage.getItem('soroban_exact_orig');
       if (saved) {
         try { store = JSON.parse(saved); } catch(e) { store = INITIAL_ASSIGNMENTS; }
       } else {
@@ -204,7 +199,7 @@ TEACHER_DASHBOARD_HTML = """
     }
 
     function saveStore() {
-      localStorage.setItem('soroban_worksheets_v2', JSON.stringify(store));
+      localStorage.setItem('soroban_exact_orig', JSON.stringify(store));
     }
 
     function toggleFlashSpeedInput() {
@@ -240,7 +235,7 @@ TEACHER_DASHBOARD_HTML = """
               <button onclick="window.location.href='/student?assignment_id=${a.id}'" class="btn-assign">Assign / View</button>
             </div>
           `).join('')
-        : `<p style="color: var(--text-muted);">No active assignments found under ${currentCategory}.</p>`;
+        : `<p style="color: #64748b;">No active assignments found under ${currentCategory}.</p>`;
     }
 
     function renderDrafts() {
@@ -253,10 +248,10 @@ TEACHER_DASHBOARD_HTML = """
         ? draftItems.map(d => `
             <div class="row-item">
               <div><strong>${d.title}</strong> <span class="category-tag">${d.category || 'Worksheet'}</span></div>
-              <button onclick="submitDraftDirectly('${d.id}')" class="btn-assign" style="background: linear-gradient(135deg, #10b981, #059669);">Submit</button>
+              <button onclick="submitDraftDirectly('${d.id}')" class="btn-assign">Submit</button>
             </div>
           `).join('')
-        : '<p style="color: var(--text-muted);">No saved drafts found.</p>';
+        : '<p style="color: #64748b;">No saved drafts found.</p>';
     }
 
     function filterCategory(category, btnElement) {
@@ -323,282 +318,304 @@ STUDENT_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soroban Practice Worksheet</title>
+    <title>Soroban Student Portal</title>
     <style>
-        :root {
-            --bg-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
-        }
         body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            padding: 30px 15px; 
-            background: var(--bg-gradient); 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #b2e2f8; 
             min-height: 100vh;
             margin: 0; 
+            padding: 30px 15px;
             box-sizing: border-box;
         }
-        .card { 
-            max-width: 820px; 
-            margin: 0 auto; 
-            background: white; 
-            padding: 35px; 
-            border-radius: 20px; 
-            box-shadow: 0 20px 35px rgba(0,0,0,0.15); 
+
+        .portal-wrapper {
+            max-width: 820px;
+            margin: 0 auto;
         }
-        .top-nav { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 20px; 
-            flex-wrap: wrap;
-            gap: 12px;
+
+        .header-title {
+            text-align: center;
+            color: #ffffff;
+            font-size: 2.8em;
+            font-weight: 900;
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-shadow: 3px 3px 0px #3b82f6, 6px 6px 0px rgba(0,0,0,0.08);
+            letter-spacing: 1px;
         }
-        .home-btn { 
-            background: linear-gradient(135deg, #2563eb, #1d4ed8); 
-            color: white; 
+
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .home-btn {
+            background: #2563eb;
+            color: white;
             border: none;
-            font-weight: bold; 
-            padding: 10px 18px; 
-            border-radius: 10px; 
-            display: inline-flex; 
-            align-items: center; 
-            gap: 6px; 
-            font-size: 0.95em; 
-            cursor: pointer; 
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            font-weight: 800;
+            padding: 10px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
-        .select-assignment { 
-            padding: 10px 14px; 
-            border-radius: 8px; 
-            border: 2px solid #cbd5e1; 
-            font-weight: bold; 
-            color: #1e293b; 
-            background: #f8fafc; 
-            cursor: pointer; 
+
+        .card-section {
+            background: #ffffff;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+        }
+
+        .card-header-pink {
+            background: #ffb6c1;
+            color: #d63384;
+            padding: 16px 24px;
+            font-size: 1.3em;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-header-green {
+            background: #a3e635;
+            color: #3f6212;
+            padding: 16px 24px;
+            font-size: 1.3em;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        .assignment-row {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 18px 22px;
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .assignment-row:last-child { margin-bottom: 0; }
+
+        .assignment-title {
+            font-size: 1.2em;
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        .category-badge {
+            background: #e0f2fe;
+            color: #0369a1;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            margin-left: 8px;
+        }
+
+        .btn-start {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .problem-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .problem-header {
+            font-weight: 800;
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+
+        .equation {
+            font-size: 2.2em;
+            font-weight: 900;
+            color: #0f172a;
+            margin-bottom: 15px;
+        }
+
+        input[type="number"] {
+            padding: 12px 16px;
+            font-size: 1.2em;
+            width: 200px;
+            border: 2px solid #cbd5e1;
+            border-radius: 10px;
+            font-weight: 800;
             outline: none;
         }
-        h1 { color: #1e3a8a; margin-top: 10px; margin-bottom: 5px; font-size: 2em; font-weight: 800; }
-        .subtitle { color: #64748b; margin-bottom: 25px; font-weight: 600; }
-        .problem-card { 
-            border: 2px solid #e2e8f0; 
-            border-radius: 12px; 
-            padding: 22px; 
-            margin-bottom: 20px; 
-            background: #f8fafc; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-        }
-        .problem-header { font-weight: bold; color: #3b82f6; margin-bottom: 8px; font-size: 1.05em; }
-        .equation { font-size: 2em; font-weight: 800; color: #0f172a; letter-spacing: 1px; margin-bottom: 14px; }
-        .flash-display-box {
-            background: linear-gradient(135deg, #0f172a, #1e293b); 
-            color: #38bdf8; 
-            font-size: 4em; 
-            font-weight: 900;
-            text-align: center; 
-            height: 200px; 
-            display: flex; 
-            align-items: center;
-            justify-content: center; 
-            border-radius: 16px; 
-            margin-bottom: 20px; 
-            letter-spacing: 2px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-        input[type="number"] { 
-            padding: 12px 16px; 
-            font-size: 1.2em; 
-            width: 200px; 
-            border: 2px solid #cbd5e0; 
-            border-radius: 8px; 
-            outline: none; 
-            font-weight: 700;
-        }
-        input[type="number"]:focus { border-color: #2563eb; }
-        .btn-submit { 
-            background: linear-gradient(135deg, #10b981, #059669); 
-            color: white; 
-            border: none; 
-            padding: 16px 28px; 
-            font-size: 1.15em; 
-            font-weight: bold; 
-            border-radius: 10px; 
-            cursor: pointer; 
-            width: 100%; 
-            margin-top: 15px; 
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
-        }
-        .btn-flash-start { 
-            background: linear-gradient(135deg, #2563eb, #1d4ed8); 
-            color: white; 
-            border: none; 
-            padding: 16px 28px; 
-            font-size: 1.25em; 
-            font-weight: bold; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            width: 100%; 
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+
+        .btn-submit-all {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 16px;
+            font-size: 1.2em;
+            font-weight: 800;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
-    <div class="card">
+    <div class="portal-wrapper">
         <div class="top-nav">
-            <button type="button" class="home-btn" onclick="window.location.href='/teacher'">🏠 Home / Teacher Dashboard</button>
-            <div>
-                <label style="font-weight: bold; margin-right: 6px; font-size: 0.9em; color: #475569;">Switch Assignment:</label>
-                <select id="assignment-picker" class="select-assignment" onchange="switchAssignment(this.value)">
-                </select>
+            <button class="home-btn" onclick="window.location.href='/teacher'">🏠 Teacher Dashboard</button>
+            <button class="home-btn" id="back-to-portal-btn" style="display: none; background: #64748b;" onclick="window.location.href='/student'">&larr; Back to Student Portal Home</button>
+        </div>
+
+        <h1 class="header-title">✨ Soroban Student Portal ✨</h1>
+
+        <div id="portal-main-view">
+            <div class="card-section">
+                <div class="card-header-pink">
+                    📌 Due Assignments
+                </div>
+                <div class="card-body" id="due-assignments-list">
+                    <p style="color: #64748b;">Loading pending assignments...</p>
+                </div>
+            </div>
+
+            <div class="card-section">
+                <div class="card-header-green">
+                    🌸 Completed History
+                </div>
+                <div class="card-body" id="completed-assignments-list">
+                    <div class="assignment-row">
+                        <div>
+                            <span class="assignment-title">division 1</span>
+                            <span class="category-badge">Division</span>
+                        </div>
+                        <span style="color: #16a34a; font-weight: 900;">100% Score</span>
+                    </div>
+                </div>
             </div>
         </div>
-        <h1 id="worksheet-title">Loading Worksheet...</h1>
-        <p class="subtitle" id="worksheet-sub">Soroban Grader Session</p>
-        <hr style="border: none; border-top: 2px solid #f1f5f9; margin-bottom: 25px;">
-        
-        <form id="worksheet-form" onsubmit="event.preventDefault(); alert('Worksheet submitted successfully!');">
-            <div id="problems-list"><p>Loading problems...</p></div>
-            <button type="submit" id="btn-submit-main" class="btn-submit">Submit Worksheet</button>
-        </form>
+
+        <div id="worksheet-active-view" style="display: none;">
+            <div class="card-section">
+                <div class="card-header-pink" id="active-worksheet-title">
+                    Worksheet Practice
+                </div>
+                <div class="card-body">
+                    <form id="worksheet-form" onsubmit="handleFormSubmit(event)">
+                        <div id="problems-container"></div>
+                        <button type="submit" class="btn-submit-all">Submit Worksheet</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-    let currentWorksheet = null;
-    let allAssigned = [];
+    const INITIAL_ASSIGNMENTS = [
+      { id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, problems: [{equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}] },
+      { id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, problems: [{equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}] },
+      { id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 1, problems: [{equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}] },
+      { id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 1, problems: [{equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}] },
+      { id: '5', title: "100s (-) 4", category: "Subtraction", type: "Subtraction", is_assigned: 1, problems: [{equation: "100 - 4", answer: 96}, {equation: "100 - 18", answer: 82}] }
+    ];
 
-    function loadWorksheet() {
-        const params = new URLSearchParams(window.location.search);
-        const id = params.get('assignment_id');
-        
-        const saved = localStorage.getItem('soroban_worksheets_v2');
-        let store = [];
+    let store = [];
+
+    function initStudentPortal() {
+        const saved = localStorage.getItem('soroban_exact_orig');
         if (saved) {
-            try { store = JSON.parse(saved); } catch(e) {}
+            try { store = JSON.parse(saved); } catch(e) { store = INITIAL_ASSIGNMENTS; }
+        } else {
+            store = INITIAL_ASSIGNMENTS;
         }
 
-        allAssigned = store.filter(item => item.is_assigned === 1);
-        if (allAssigned.length === 0) {
-            allAssigned = store;
+        const params = new URLSearchParams(window.location.search);
+        const activeId = params.get('assignment_id');
+
+        if (activeId) {
+            const worksheet = store.find(item => String(item.id) === String(activeId));
+            if (worksheet) {
+                renderWorksheetView(worksheet);
+                return;
+            }
         }
 
-        const picker = document.getElementById('assignment-picker');
-        if (picker && allAssigned.length > 0) {
-            picker.innerHTML = allAssigned.map(item => `
-                <option value="${item.id}" ${String(item.id) === String(id) ? 'selected' : ''}>
-                    ${item.title} (${item.category || 'General'})
-                </option>
-            `).join('');
-        }
-
-        if (id) {
-            currentWorksheet = store.find(item => String(item.id) === String(id));
-        }
-        if (!currentWorksheet && allAssigned.length > 0) {
-            currentWorksheet = allAssigned[0];
-        }
-
-        if (!currentWorksheet) {
-            currentWorksheet = {
-                id: '1',
-                title: 'addition 1',
-                category: 'Addition',
-                problems: [{ equation: "15 + 27", answer: 42 }]
-            };
-        }
-
-        document.getElementById('worksheet-title').innerText = currentWorksheet.title || 'Worksheet';
-        
-        let rawProblems = currentWorksheet.problems || [];
-        if (typeof rawProblems === 'string') {
-            try { rawProblems = JSON.parse(rawProblems); } catch(e) { rawProblems = []; }
-        }
-        currentWorksheet.problems = rawProblems;
-
-        document.getElementById('worksheet-sub').innerText = `Category: ${currentWorksheet.category || 'General'} | ${currentWorksheet.problems.length} Problems`;
-        
-        const isFlash = currentWorksheet.is_flash || (currentWorksheet.category && currentWorksheet.category.toLowerCase() === 'flash anzan');
-        if (isFlash) renderFlashInterface();
-        else renderStandardInterface();
+        renderPortalHome();
     }
 
-    function switchAssignment(newId) {
-        window.location.href = `/student?assignment_id=${newId}`;
-    }
+    function renderPortalHome() {
+        document.getElementById('portal-main-view').style.display = 'block';
+        document.getElementById('worksheet-active-view').style.display = 'none';
+        document.getElementById('back-to-portal-btn').style.display = 'none';
 
-    function renderStandardInterface() {
-        const container = document.getElementById('problems-list');
-        if (currentWorksheet.problems && currentWorksheet.problems.length > 0) {
-            container.innerHTML = currentWorksheet.problems.map((p, idx) => `
-                <div class="problem-card">
-                    <div class="problem-header">Problem ${idx + 1}</div>
-                    <div class="equation">${p.equation}</div>
-                    <input type="number" step="any" placeholder="Your Answer" required>
+        const dueContainer = document.getElementById('due-assignments-list');
+        const activeItems = store.filter(item => item.is_assigned === 1);
+
+        if (activeItems.length > 0) {
+            dueContainer.innerHTML = activeItems.map(item => `
+                <div class="assignment-row">
+                    <div>
+                        <span class="assignment-title">${item.title}</span>
+                        <span class="category-badge">${item.category || 'General'}</span>
+                    </div>
+                    <button class="btn-start" onclick="window.location.href='/student?assignment_id=${item.id}'">Start Assignment</button>
                 </div>
             `).join('');
         } else {
-            container.innerHTML = '<p>No problems found in this worksheet.</p>';
+            dueContainer.innerHTML = '<p style="color: #64748b;">No due assignments right now!</p>';
         }
     }
 
-    function renderFlashInterface() {
-        const container = document.getElementById('problems-list');
-        document.getElementById('btn-submit-main').style.display = 'none';
+    function renderWorksheetView(worksheet) {
+        document.getElementById('portal-main-view').style.display = 'none';
+        document.getElementById('worksheet-active-view').style.display = 'block';
+        document.getElementById('back-to-portal-btn').style.display = 'inline-block';
 
-        container.innerHTML = `
-            <div id="flash-container">
-                <div class="flash-display-box" id="flash-screen">READY?</div>
-                <button type="button" class="btn-flash-start" id="btn-start-flash" onclick="runFlashSequence()">⚡ Start Flash Session</button>
-                <div id="flash-answer-section" style="display: none; margin-top: 20px;">
-                    <div class="problem-header" style="font-size: 1.1em; margin-bottom: 10px;">Enter Final Flash Answers:</div>
-                    <div id="flash-answers-inputs"></div>
-                    <button type="submit" class="btn-submit" style="display: block;">Submit Answers</button>
-                </div>
-            </div>
-        `;
-    }
+        document.getElementById('active-worksheet-title').innerText = worksheet.title;
 
-    async function runFlashSequence() {
-        const screen = document.getElementById('flash-screen');
-        document.getElementById('btn-start-flash').style.display = 'none';
-
-        const speed = currentWorksheet.flash_speed_ms || 1500;
-        const problems = currentWorksheet.problems || [];
-
-        for (let i = 0; i < problems.length; i++) {
-            const prob = problems[i];
-            screen.innerText = `Problem ${i + 1}`;
-            await sleep(1200);
-
-            let terms = typeof prob.equation === 'string' ? prob.equation.split(',').map(t => t.trim()) : [prob.equation];
-
-            for (let term of terms) {
-                screen.innerText = term;
-                await sleep(speed);
-                screen.innerText = '';
-                await sleep(200);
-            }
-
-            screen.innerText = 'DONE!';
-            await sleep(800);
+        let problems = worksheet.problems || [];
+        if (typeof problems === 'string') {
+            try { problems = JSON.parse(problems); } catch(e) { problems = []; }
         }
 
-        screen.innerText = 'COMPLETE!';
-        showFlashAnswersForm();
-    }
-
-    function showFlashAnswersForm() {
-        const section = document.getElementById('flash-answer-section');
-        const inputsContainer = document.getElementById('flash-answers-inputs');
-        section.style.display = 'block';
-
-        inputsContainer.innerHTML = currentWorksheet.problems.map((p, idx) => `
-            <div class="problem-card" style="margin-bottom: 12px;">
-                <div class="problem-header">Problem ${idx + 1} Answer</div>
+        const container = document.getElementById('problems-container');
+        container.innerHTML = problems.map((p, idx) => `
+            <div class="problem-card">
+                <div class="problem-header">Problem ${idx + 1}</div>
+                <div class="equation">${p.equation}</div>
                 <input type="number" step="any" placeholder="Your Answer" required>
             </div>
         `).join('');
     }
 
-    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-    document.addEventListener('DOMContentLoaded', loadWorksheet);
+    function handleFormSubmit(e) {
+        e.preventDefault();
+        alert('Worksheet submitted successfully!');
+        window.location.href = '/student';
+    }
+
+    document.addEventListener('DOMContentLoaded', initStudentPortal);
     </script>
 </body>
 </html>
