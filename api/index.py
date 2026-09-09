@@ -136,7 +136,7 @@ TEACHER_DASHBOARD_HTML = """
 
         <div class="form-group">
             <label>Parsed Problems (One math expression per line):</label>
-            <textarea id="problems-input" rows="4" placeholder="5, +3, +8, +6, +4&#10;9, +1, +2, +3, +7"></textarea>
+            <textarea id="problems-input" rows="5" placeholder="12 x 15&#10;24 x 11&#10;35 x 14&#10;42 x 18&#10;56 x 23"></textarea>
         </div>
 
         <div class="btn-group">
@@ -177,29 +177,91 @@ TEACHER_DASHBOARD_HTML = """
 
     <script>
     const INITIAL_ASSIGNMENTS = [
-      { id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, problems: [{equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}] },
-      { id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, problems: [{equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}] },
-      { id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 1, problems: [{equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}] },
-      { id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 1, problems: [{equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}] },
-      { id: '5', title: "100s (-) 4", category: "Subtraction", type: "Subtraction", is_assigned: 1, problems: [{equation: "100 - 4", answer: 96}, {equation: "100 - 18", answer: 82}] }
+      { 
+        id: '1', 
+        title: "addition 1", 
+        category: "Addition", 
+        type: "Addition", 
+        is_assigned: 1, 
+        problems: [
+          {equation: "15 + 27", answer: 42}, 
+          {equation: "34 + 18", answer: 52},
+          {equation: "49 + 23", answer: 72},
+          {equation: "67 + 15", answer: 82},
+          {equation: "88 + 24", answer: 112}
+        ] 
+      },
+      { 
+        id: '2', 
+        title: "division 1", 
+        category: "Division", 
+        type: "Division", 
+        is_assigned: 1, 
+        problems: [
+          {equation: "12 / 3", answer: 4}, 
+          {equation: "24 / 6", answer: 4},
+          {equation: "45 / 5", answer: 9},
+          {equation: "72 / 8", answer: 9},
+          {equation: "81 / 9", answer: 9}
+        ] 
+      },
+      { 
+        id: '3', 
+        title: "2dgt by 2 dgt multiplication", 
+        category: "Multiplication", 
+        type: "Multiplication", 
+        is_assigned: 1, 
+        problems: [
+          {equation: "12 x 15", answer: 180}, 
+          {equation: "24 x 11", answer: 264},
+          {equation: "35 x 14", answer: 490},
+          {equation: "42 x 18", answer: 756},
+          {equation: "56 x 23", answer: 1288},
+          {equation: "64 x 31", answer: 1984}
+        ] 
+      },
+      { 
+        id: '4', 
+        title: "100s (-) 3", 
+        category: "Subtraction", 
+        type: "Subtraction", 
+        is_assigned: 1, 
+        problems: [
+          {equation: "100 - 3", answer: 97}, 
+          {equation: "100 - 14", answer: 86},
+          {equation: "100 - 27", answer: 73},
+          {equation: "100 - 42", answer: 58},
+          {equation: "100 - 65", answer: 35}
+        ] 
+      },
+      { 
+        id: '5', 
+        title: "100s (-) 4", 
+        category: "Subtraction", 
+        type: "Subtraction", 
+        is_assigned: 1, 
+        problems: [
+          {equation: "100 - 4", answer: 96}, 
+          {equation: "100 - 18", answer: 82},
+          {equation: "100 - 35", answer: 65},
+          {equation: "100 - 49", answer: 51},
+          {equation: "100 - 73", answer: 27}
+        ] 
+      }
     ];
 
     let store = [];
     let currentCategory = 'All';
 
     function loadStore() {
-      const saved = localStorage.getItem('soroban_exact_orig');
-      if (saved) {
-        try { store = JSON.parse(saved); } catch(e) { store = INITIAL_ASSIGNMENTS; }
-      } else {
-        store = INITIAL_ASSIGNMENTS;
-        saveStore();
-      }
+      // Force refresh store with full question sets
+      localStorage.setItem('soroban_full_problems_v3', JSON.stringify(INITIAL_ASSIGNMENTS));
+      store = INITIAL_ASSIGNMENTS;
       renderAll();
     }
 
     function saveStore() {
-      localStorage.setItem('soroban_exact_orig', JSON.stringify(store));
+      localStorage.setItem('soroban_full_problems_v3', JSON.stringify(store));
     }
 
     function toggleFlashSpeedInput() {
@@ -533,17 +595,83 @@ STUDENT_HTML = """
 
     <script>
     const INITIAL_ASSIGNMENTS = [
-      { id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, problems: [{equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}] },
-      { id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, problems: [{equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}] },
-      { id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 1, problems: [{equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}] },
-      { id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 1, problems: [{equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}] },
-      { id: '5', title: "100s (-) 4", category: "Subtraction", type: "Subtraction", is_assigned: 1, problems: [{equation: "100 - 4", answer: 96}, {equation: "100 - 18", answer: 82}] }
+      { 
+        id: '1', 
+        title: "addition 1", 
+        category: "Addition", 
+        type: "Addition", 
+        is_assigned: 1, 
+        problems: [
+          {equation: "15 + 27", answer: 42}, 
+          {equation: "34 + 18", answer: 52},
+          {equation: "49 + 23", answer: 72},
+          {equation: "67 + 15", answer: 82},
+          {equation: "88 + 24", answer: 112}
+        ] 
+      },
+      { 
+        id: '2', 
+        title: "division 1", 
+        category: "Division", 
+        type: "Division", 
+        is_assigned: 1, 
+        problems: [
+          {equation: "12 / 3", answer: 4}, 
+          {equation: "24 / 6", answer: 4},
+          {equation: "45 / 5", answer: 9},
+          {equation: "72 / 8", answer: 9},
+          {equation: "81 / 9", answer: 9}
+        ] 
+      },
+      { 
+        id: '3', 
+        title: "2dgt by 2 dgt multiplication", 
+        category: "Multiplication", 
+        type: "Multiplication", 
+        is_assigned: 1, 
+        problems: [
+          {equation: "12 x 15", answer: 180}, 
+          {equation: "24 x 11", answer: 264},
+          {equation: "35 x 14", answer: 490},
+          {equation: "42 x 18", answer: 756},
+          {equation: "56 x 23", answer: 1288},
+          {equation: "64 x 31", answer: 1984}
+        ] 
+      },
+      { 
+        id: '4', 
+        title: "100s (-) 3", 
+        category: "Subtraction", 
+        type: "Subtraction", 
+        is_assigned: 1, 
+        problems: [
+          {equation: "100 - 3", answer: 97}, 
+          {equation: "100 - 14", answer: 86},
+          {equation: "100 - 27", answer: 73},
+          {equation: "100 - 42", answer: 58},
+          {equation: "100 - 65", answer: 35}
+        ] 
+      },
+      { 
+        id: '5', 
+        title: "100s (-) 4", 
+        category: "Subtraction", 
+        type: "Subtraction", 
+        is_assigned: 1, 
+        problems: [
+          {equation: "100 - 4", answer: 96}, 
+          {equation: "100 - 18", answer: 82},
+          {equation: "100 - 35", answer: 65},
+          {equation: "100 - 49", answer: 51},
+          {equation: "100 - 73", answer: 27}
+        ] 
+      }
     ];
 
     let store = [];
 
     function initStudentPortal() {
-        const saved = localStorage.getItem('soroban_exact_orig');
+        const saved = localStorage.getItem('soroban_full_problems_v3');
         if (saved) {
             try { store = JSON.parse(saved); } catch(e) { store = INITIAL_ASSIGNMENTS; }
         } else {
