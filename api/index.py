@@ -233,20 +233,6 @@ TEACHER_DASHBOARD_HTML = """
           {equation: "100 - 42", answer: 58},
           {equation: "100 - 65", answer: 35}
         ] 
-      },
-      { 
-        id: '5', 
-        title: "100s (-) 4", 
-        category: "Subtraction", 
-        type: "Subtraction", 
-        is_assigned: 1, 
-        problems: [
-          {equation: "100 - 4", answer: 96}, 
-          {equation: "100 - 18", answer: 82},
-          {equation: "100 - 35", answer: 65},
-          {equation: "100 - 49", answer: 51},
-          {equation: "100 - 73", answer: 27}
-        ] 
       }
     ];
 
@@ -254,14 +240,13 @@ TEACHER_DASHBOARD_HTML = """
     let currentCategory = 'All';
 
     function loadStore() {
-      // Force refresh store with full question sets
-      localStorage.setItem('soroban_full_problems_v3', JSON.stringify(INITIAL_ASSIGNMENTS));
+      localStorage.setItem('soroban_clean_4_sets_v1', JSON.stringify(INITIAL_ASSIGNMENTS));
       store = INITIAL_ASSIGNMENTS;
       renderAll();
     }
 
     function saveStore() {
-      localStorage.setItem('soroban_full_problems_v3', JSON.stringify(store));
+      localStorage.setItem('soroban_clean_4_sets_v1', JSON.stringify(store));
     }
 
     function toggleFlashSpeedInput() {
@@ -651,27 +636,13 @@ STUDENT_HTML = """
           {equation: "100 - 42", answer: 58},
           {equation: "100 - 65", answer: 35}
         ] 
-      },
-      { 
-        id: '5', 
-        title: "100s (-) 4", 
-        category: "Subtraction", 
-        type: "Subtraction", 
-        is_assigned: 1, 
-        problems: [
-          {equation: "100 - 4", answer: 96}, 
-          {equation: "100 - 18", answer: 82},
-          {equation: "100 - 35", answer: 65},
-          {equation: "100 - 49", answer: 51},
-          {equation: "100 - 73", answer: 27}
-        ] 
       }
     ];
 
     let store = [];
 
     function initStudentPortal() {
-        const saved = localStorage.getItem('soroban_full_problems_v3');
+        const saved = localStorage.getItem('soroban_clean_4_sets_v1');
         if (saved) {
             try { store = JSON.parse(saved); } catch(e) { store = INITIAL_ASSIGNMENTS; }
         } else {
