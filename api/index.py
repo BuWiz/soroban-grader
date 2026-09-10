@@ -188,7 +188,12 @@ TEACHER_DASHBOARD_HTML = """
           {equation: "34 + 18", answer: 52},
           {equation: "49 + 23", answer: 72},
           {equation: "67 + 15", answer: 82},
-          {equation: "88 + 24", answer: 112}
+          {equation: "88 + 24", answer: 112},
+          {equation: "53 + 39", answer: 92},
+          {equation: "76 + 18", answer: 94},
+          {equation: "29 + 64", answer: 93},
+          {equation: "81 + 19", answer: 100},
+          {equation: "95 + 47", answer: 142}
         ] 
       },
       { 
@@ -202,7 +207,12 @@ TEACHER_DASHBOARD_HTML = """
           {equation: "24 / 6", answer: 4},
           {equation: "45 / 5", answer: 9},
           {equation: "72 / 8", answer: 9},
-          {equation: "81 / 9", answer: 9}
+          {equation: "81 / 9", answer: 9},
+          {equation: "36 / 4", answer: 9},
+          {equation: "48 / 6", answer: 8},
+          {equation: "56 / 7", answer: 8},
+          {equation: "63 / 9", answer: 7},
+          {equation: "90 / 10", answer: 9}
         ] 
       },
       { 
@@ -217,7 +227,11 @@ TEACHER_DASHBOARD_HTML = """
           {equation: "35 x 14", answer: 490},
           {equation: "42 x 18", answer: 756},
           {equation: "56 x 23", answer: 1288},
-          {equation: "64 x 31", answer: 1984}
+          {equation: "64 x 31", answer: 1984},
+          {equation: "15 x 15", answer: 225},
+          {equation: "22 x 25", answer: 550},
+          {equation: "30 x 45", answer: 1350},
+          {equation: "50 x 12", answer: 600}
         ] 
       },
       { 
@@ -231,7 +245,12 @@ TEACHER_DASHBOARD_HTML = """
           {equation: "100 - 14", answer: 86},
           {equation: "100 - 27", answer: 73},
           {equation: "100 - 42", answer: 58},
-          {equation: "100 - 65", answer: 35}
+          {equation: "100 - 65", answer: 35},
+          {equation: "100 - 78", answer: 22},
+          {equation: "100 - 89", answer: 11},
+          {equation: "100 - 33", answer: 67},
+          {equation: "100 - 51", answer: 49},
+          {equation: "100 - 92", answer: 8}
         ] 
       }
     ];
@@ -240,22 +259,14 @@ TEACHER_DASHBOARD_HTML = """
     let currentCategory = 'All';
 
     function loadStore() {
-      // Clear all legacy keys
-      localStorage.removeItem('soroban_worksheets');
-      localStorage.removeItem('soroban_worksheets_v2');
-      localStorage.removeItem('soroban_colorful_store');
-      localStorage.removeItem('soroban_exact_orig');
-      localStorage.removeItem('soroban_full_problems_v3');
-      localStorage.removeItem('soroban_clean_4_sets_v1');
-
-      // Set clean state
-      localStorage.setItem('soroban_fixed_v99', JSON.stringify(INITIAL_ASSIGNMENTS));
+      // Force overwriting local cache key
+      localStorage.setItem('soroban_10_problems_v999', JSON.stringify(INITIAL_ASSIGNMENTS));
       store = INITIAL_ASSIGNMENTS;
       renderAll();
     }
 
     function saveStore() {
-      localStorage.setItem('soroban_fixed_v99', JSON.stringify(store));
+      localStorage.setItem('soroban_10_problems_v999', JSON.stringify(store));
     }
 
     function toggleFlashSpeedInput() {
@@ -600,7 +611,12 @@ STUDENT_HTML = """
           {equation: "34 + 18", answer: 52},
           {equation: "49 + 23", answer: 72},
           {equation: "67 + 15", answer: 82},
-          {equation: "88 + 24", answer: 112}
+          {equation: "88 + 24", answer: 112},
+          {equation: "53 + 39", answer: 92},
+          {equation: "76 + 18", answer: 94},
+          {equation: "29 + 64", answer: 93},
+          {equation: "81 + 19", answer: 100},
+          {equation: "95 + 47", answer: 142}
         ] 
       },
       { 
@@ -614,7 +630,12 @@ STUDENT_HTML = """
           {equation: "24 / 6", answer: 4},
           {equation: "45 / 5", answer: 9},
           {equation: "72 / 8", answer: 9},
-          {equation: "81 / 9", answer: 9}
+          {equation: "81 / 9", answer: 9},
+          {equation: "36 / 4", answer: 9},
+          {equation: "48 / 6", answer: 8},
+          {equation: "56 / 7", answer: 8},
+          {equation: "63 / 9", answer: 7},
+          {equation: "90 / 10", answer: 9}
         ] 
       },
       { 
@@ -629,7 +650,11 @@ STUDENT_HTML = """
           {equation: "35 x 14", answer: 490},
           {equation: "42 x 18", answer: 756},
           {equation: "56 x 23", answer: 1288},
-          {equation: "64 x 31", answer: 1984}
+          {equation: "64 x 31", answer: 1984},
+          {equation: "15 x 15", answer: 225},
+          {equation: "22 x 25", answer: 550},
+          {equation: "30 x 45", answer: 1350},
+          {equation: "50 x 12", answer: 600}
         ] 
       },
       { 
@@ -643,7 +668,12 @@ STUDENT_HTML = """
           {equation: "100 - 14", answer: 86},
           {equation: "100 - 27", answer: 73},
           {equation: "100 - 42", answer: 58},
-          {equation: "100 - 65", answer: 35}
+          {equation: "100 - 65", answer: 35},
+          {equation: "100 - 78", answer: 22},
+          {equation: "100 - 89", answer: 11},
+          {equation: "100 - 33", answer: 67},
+          {equation: "100 - 51", answer: 49},
+          {equation: "100 - 92", answer: 8}
         ] 
       }
     ];
@@ -651,12 +681,9 @@ STUDENT_HTML = """
     let store = [];
 
     function initStudentPortal() {
-        const saved = localStorage.getItem('soroban_fixed_v99');
-        if (saved) {
-            try { store = JSON.parse(saved); } catch(e) { store = INITIAL_ASSIGNMENTS; }
-        } else {
-            store = INITIAL_ASSIGNMENTS;
-        }
+        // ALWAYS overwrite with the 10-problem defaults
+        localStorage.setItem('soroban_10_problems_v999', JSON.stringify(INITIAL_ASSIGNMENTS));
+        store = INITIAL_ASSIGNMENTS;
 
         const params = new URLSearchParams(window.location.search);
         const activeId = params.get('assignment_id');
