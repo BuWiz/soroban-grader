@@ -68,7 +68,7 @@ TEACHER_DASHBOARD_HTML = """
         .btn {
             padding: 12px 24px; background: #2563eb; color: white; border: none;
             border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 0.95em;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
 
         .btn-secondary { background: #64748b; }
@@ -120,18 +120,13 @@ TEACHER_DASHBOARD_HTML = """
 
         <div class="form-group">
             <label>Worksheet Category:</label>
-            <select id="category-input" onchange="toggleFlashSpeedInput()">
+            <select id="category-input">
                 <option value="Addition">Addition</option>
                 <option value="Division">Division</option>
                 <option value="Multiplication">Multiplication</option>
                 <option value="Subtraction">Subtraction</option>
                 <option value="Flash Anzan">Flash Anzan</option>
             </select>
-        </div>
-
-        <div class="form-group" id="flash-speed-group" style="display: none;">
-            <label>Flash Speed (Milliseconds per term):</label>
-            <input type="number" id="flash-speed-input" value="1500" placeholder="1500">
         </div>
 
         <div class="form-group">
@@ -148,12 +143,7 @@ TEACHER_DASHBOARD_HTML = """
 
         <h2>Student Grades & Automated Scoring</h2>
         <div class="section-block">
-            <div id="student-grades-container">
-                <div class="row-item">
-                    <div><strong>Leigha:</strong> division 1</div>
-                    <span class="badge">100% Correct</span>
-                </div>
-            </div>
+            <div id="student-grades-container"></div>
         </div>
 
         <h2>Active Student Work Library</h2>
@@ -231,7 +221,7 @@ TEACHER_DASHBOARD_HTML = """
       }
     ];
 
-    let store = HARDCODED_10_PROBLEMS;
+    let store = [];
     let currentCategory = 'All';
 
     function loadStore() {
@@ -243,11 +233,22 @@ TEACHER_DASHBOARD_HTML = """
         localStorage.setItem('soroban_assignments_store', JSON.stringify(store));
       }
       renderAll();
+      renderGrades();
     }
 
-    function toggleFlashSpeedInput() {
-      const category = document.getElementById('category-input').value;
-      document.getElementById('flash-speed-group').style.display = (category === 'Flash Anzan') ? 'block' : 'none';
+    function renderGrades() {
+      const container = document.getElementById('student-grades-container');
+      const savedGrades = localStorage.getItem('soroban_student_grades');
+      let grades = savedGrades ? JSON.parse(savedGrades) : [
+        { student: "Leigha", title: "division 1", score: "100% Correct" }
+      ];
+
+      container.innerHTML = grades.map(g => `
+        <div class="row-item">
+          <div><strong>${g.student}:</strong> ${g.title}</div>
+          <span class="badge">${g.score}</span>
+        </div>
+      `).join('');
     }
 
     function renderAll() {
@@ -316,7 +317,6 @@ TEACHER_DASHBOARD_HTML = """
     function submitWorksheet(isAssigned) {
       const title = document.getElementById('title-input').value;
       const category = document.getElementById('category-input').value;
-      const flashSpeed = parseInt(document.getElementById('flash-speed-input').value) || 1500;
       const problemsText = document.getElementById('problems-input').value;
 
       if (!title) {
@@ -335,8 +335,6 @@ TEACHER_DASHBOARD_HTML = """
         category,
         type: category,
         is_assigned: isAssigned,
-        is_flash: category === 'Flash Anzan' ? 1 : 0,
-        flash_speed_ms: flashSpeed,
         problems
       };
 
@@ -372,155 +370,73 @@ STUDENT_HTML = """
             box-sizing: border-box;
         }
 
-        .portal-wrapper {
-            max-width: 820px;
-            margin: 0 auto;
-        }
+        .portal-wrapper { max-width: 820px; margin: 0 auto; }
 
         .header-title {
-            text-align: center;
-            color: #ffffff;
-            font-size: 2.8em;
-            font-weight: 900;
-            margin-top: 0;
-            margin-bottom: 25px;
+            text-align: center; color: #ffffff; font-size: 2.8em; font-weight: 900;
+            margin-top: 0; margin-bottom: 25px;
             text-shadow: 3px 3px 0px #3b82f6, 6px 6px 0px rgba(0,0,0,0.08);
-            letter-spacing: 1px;
         }
 
-        .top-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 
         .home-btn {
-            background: #2563eb;
-            color: white;
-            border: none;
-            font-weight: 800;
-            padding: 10px 20px;
-            border-radius: 12px;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            background: #2563eb; color: white; border: none; font-weight: 800;
+            padding: 10px 20px; border-radius: 12px; cursor: pointer;
         }
 
         .card-section {
-            background: #ffffff;
-            border-radius: 20px;
-            overflow: hidden;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+            background: #ffffff; border-radius: 20px; overflow: hidden;
+            margin-bottom: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.06);
         }
 
         .card-header-pink {
-            background: #ffb6c1;
-            color: #d63384;
-            padding: 16px 24px;
-            font-size: 1.3em;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            background: #ffb6c1; color: #d63384; padding: 16px 24px;
+            font-size: 1.3em; font-weight: 800;
         }
 
         .card-header-green {
-            background: #a3e635;
-            color: #3f6212;
-            padding: 16px 24px;
-            font-size: 1.3em;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            background: #a3e635; color: #3f6212; padding: 16px 24px;
+            font-size: 1.3em; font-weight: 800;
         }
 
-        .card-body {
-            padding: 25px;
-        }
+        .card-body { padding: 25px; }
 
         .assignment-row {
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 18px 22px;
-            margin-bottom: 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 14px;
+            padding: 18px 22px; margin-bottom: 14px; display: flex;
+            justify-content: space-between; align-items: center;
         }
 
-        .assignment-row:last-child { margin-bottom: 0; }
-
-        .assignment-title {
-            font-size: 1.2em;
-            font-weight: 800;
-            color: #1e293b;
-        }
+        .assignment-title { font-size: 1.2em; font-weight: 800; color: #1e293b; }
 
         .category-badge {
-            background: #e0f2fe;
-            color: #0369a1;
-            font-weight: 800;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 0.85em;
-            margin-left: 8px;
+            background: #e0f2fe; color: #0369a1; font-weight: 800;
+            padding: 4px 10px; border-radius: 8px; font-size: 0.85em; margin-left: 8px;
         }
 
         .btn-start {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: 800;
-            cursor: pointer;
+            background: #2563eb; color: white; border: none; padding: 10px 20px;
+            border-radius: 10px; font-weight: 800; cursor: pointer;
         }
 
         .problem-card {
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 20px;
-            margin-bottom: 20px;
+            background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 14px;
+            padding: 20px; margin-bottom: 20px;
         }
 
-        .problem-header {
-            font-weight: 800;
-            color: #2563eb;
-            margin-bottom: 10px;
-        }
+        .problem-header { font-weight: 800; color: #2563eb; margin-bottom: 10px; }
 
-        .equation {
-            font-size: 2.2em;
-            font-weight: 900;
-            color: #0f172a;
-            margin-bottom: 15px;
-        }
+        .equation { font-size: 2.2em; font-weight: 900; color: #0f172a; margin-bottom: 15px; }
 
         input[type="number"] {
-            padding: 12px 16px;
-            font-size: 1.2em;
-            width: 200px;
-            border: 2px solid #cbd5e1;
-            border-radius: 10px;
-            font-weight: 800;
-            outline: none;
+            padding: 12px 16px; font-size: 1.2em; width: 200px;
+            border: 2px solid #cbd5e1; border-radius: 10px; font-weight: 800; outline: none;
         }
 
         .btn-submit-all {
-            background: #10b981;
-            color: white;
-            border: none;
-            padding: 16px;
-            font-size: 1.2em;
-            font-weight: 800;
-            border-radius: 12px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
+            background: #10b981; color: white; border: none; padding: 16px;
+            font-size: 1.2em; font-weight: 800; border-radius: 12px; cursor: pointer; width: 100%;
         }
     </style>
 </head>
@@ -535,29 +451,19 @@ STUDENT_HTML = """
 
         <div id="portal-main-view">
             <div class="card-section">
-                <div class="card-header-pink">
-                    📌 Due Assignments
-                </div>
-                <div class="card-body" id="due-assignments-list">
-                    <p style="color: #64748b;">Loading pending assignments...</p>
-                </div>
+                <div class="card-header-pink">📌 Due Assignments</div>
+                <div class="card-body" id="due-assignments-list"></div>
             </div>
 
             <div class="card-section">
-                <div class="card-header-green">
-                    🌸 Completed History
-                </div>
-                <div class="card-body" id="completed-assignments-list">
-                    <p style="color: #64748b;">No completed assignments yet.</p>
-                </div>
+                <div class="card-header-green">🌸 Completed History</div>
+                <div class="card-body" id="completed-assignments-list"></div>
             </div>
         </div>
 
         <div id="worksheet-active-view" style="display: none;">
             <div class="card-section">
-                <div class="card-header-pink" id="active-worksheet-title">
-                    Worksheet Practice
-                </div>
+                <div class="card-header-pink" id="active-worksheet-title">Worksheet Practice</div>
                 <div class="card-body">
                     <form id="worksheet-form" onsubmit="handleFormSubmit(event)">
                         <div id="problems-container"></div>
@@ -571,11 +477,7 @@ STUDENT_HTML = """
     <script>
     const HARDCODED_10_PROBLEMS = [
       { 
-        id: '1', 
-        title: "addition 1", 
-        category: "Addition", 
-        type: "Addition", 
-        is_assigned: 1, 
+        id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, 
         problems: [
           {equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}, {equation: "49 + 23", answer: 72},
           {equation: "67 + 15", answer: 82}, {equation: "88 + 24", answer: 112}, {equation: "53 + 39", answer: 92},
@@ -584,11 +486,7 @@ STUDENT_HTML = """
         ] 
       },
       { 
-        id: '2', 
-        title: "division 1", 
-        category: "Division", 
-        type: "Division", 
-        is_assigned: 1, 
+        id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, 
         problems: [
           {equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}, {equation: "45 / 5", answer: 9},
           {equation: "72 / 8", answer: 9}, {equation: "81 / 9", answer: 9}, {equation: "36 / 4", answer: 9},
@@ -597,11 +495,7 @@ STUDENT_HTML = """
         ] 
       },
       { 
-        id: '3', 
-        title: "2dgt by 2 dgt multiplication", 
-        category: "Multiplication", 
-        type: "Multiplication", 
-        is_assigned: 1, 
+        id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 1, 
         problems: [
           {equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}, {equation: "35 x 14", answer: 490},
           {equation: "42 x 18", answer: 756}, {equation: "56 x 23", answer: 1288}, {equation: "64 x 31", answer: 1984},
@@ -610,11 +504,7 @@ STUDENT_HTML = """
         ] 
       },
       { 
-        id: '4', 
-        title: "100s (-) 3", 
-        category: "Subtraction", 
-        type: "Subtraction", 
-        is_assigned: 1, 
+        id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 1, 
         problems: [
           {equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}, {equation: "100 - 27", answer: 73},
           {equation: "100 - 42", answer: 58}, {equation: "100 - 65", answer: 35}, {equation: "100 - 78", answer: 22},
@@ -640,14 +530,19 @@ STUDENT_HTML = """
         const savedCompleted = localStorage.getItem('soroban_completed_history');
         if (savedCompleted) {
             try { completedHistory = JSON.parse(savedCompleted); } catch(e) { completedHistory = []; }
+        } else {
+            // Default initial completed history item
+            completedHistory = [
+                { id: '2_done', title: "division 1", category: "Division", score: "100% Score" }
+            ];
+            localStorage.setItem('soroban_completed_history', JSON.stringify(completedHistory));
         }
 
         const params = new URLSearchParams(window.location.search);
         const activeId = params.get('assignment_id');
 
         if (activeId) {
-            currentWorksheet = store.find(item => String(item.id) === String(activeId)) || 
-                               completedHistory.find(item => String(item.id) === String(activeId));
+            currentWorksheet = store.find(item => String(item.id) === String(activeId));
             if (currentWorksheet) {
                 renderWorksheetView(currentWorksheet);
                 return;
@@ -660,13 +555,12 @@ STUDENT_HTML = """
     function renderPortalHome() {
         document.getElementById('portal-main-view').style.display = 'block';
         document.getElementById('worksheet-active-view').style.display = 'none';
-        document.getElementById('back-to-portal-btn').style.display = 'none';
 
         const dueContainer = document.getElementById('due-assignments-list');
         const activeItems = store.filter(item => item.is_assigned === 1);
 
-        if (activeItems.length > 0) {
-            dueContainer.innerHTML = activeItems.map(item => `
+        dueContainer.innerHTML = activeItems.length > 0
+            ? activeItems.map(item => `
                 <div class="assignment-row">
                     <div>
                         <span class="assignment-title">${item.title}</span>
@@ -674,65 +568,85 @@ STUDENT_HTML = """
                     </div>
                     <button class="btn-start" onclick="window.location.href='/student?assignment_id=${item.id}'">Start Assignment</button>
                 </div>
-            `).join('');
-        } else {
-            dueContainer.innerHTML = '<p style="color: #64748b;">No due assignments right now!</p>';
-        }
+            `).join('')
+            : '<p style="color: #64748b;">No due assignments right now!</p>';
 
         const completedContainer = document.getElementById('completed-assignments-list');
-        if (completedHistory.length > 0) {
-            completedContainer.innerHTML = completedHistory.map(item => `
+        completedContainer.innerHTML = completedHistory.length > 0
+            ? completedHistory.map(item => `
                 <div class="assignment-row">
                     <div>
-                        <a href="/student?assignment_id=${item.id}" class="assignment-title" style="text-decoration: underline; color: #1e293b;">${item.title}</a>
+                        <span class="assignment-title">${item.title}</span>
                         <span class="category-badge">${item.category || 'General'}</span>
                     </div>
-                    <span style="color: #16a34a; font-weight: 900;">${item.score || '100%'} Score</span>
+                    <span style="color: #16a34a; font-weight: 900;">${item.score}</span>
                 </div>
-            `).join('');
-        } else {
-            completedContainer.innerHTML = '<p style="color: #64748b;">No completed assignments yet.</p>';
-        }
+            `).join('')
+            : '<p style="color: #64748b;">No completed assignments yet.</p>';
     }
 
     function renderWorksheetView(worksheet) {
         document.getElementById('portal-main-view').style.display = 'none';
         document.getElementById('worksheet-active-view').style.display = 'block';
         document.getElementById('back-to-portal-btn').style.display = 'inline-block';
-
         document.getElementById('active-worksheet-title').innerText = worksheet.title;
 
-        let problems = worksheet.problems || [];
-        if (typeof problems === 'string') {
-            try { problems = JSON.parse(problems); } catch(e) { problems = []; }
-        }
-
         const container = document.getElementById('problems-container');
-        container.innerHTML = problems.map((p, idx) => `
+        container.innerHTML = worksheet.problems.map((p, idx) => `
             <div class="problem-card">
                 <div class="problem-header">Problem ${idx + 1}</div>
                 <div class="equation">${p.equation}</div>
-                <input type="number" step="any" placeholder="Your Answer" required>
+                <input type="number" step="any" class="student-answer-input" data-expected="${p.answer}" placeholder="Your Answer" required>
             </div>
         `).join('');
     }
 
     function handleFormSubmit(e) {
         e.preventDefault();
-        if (currentWorksheet) {
-            currentWorksheet.is_assigned = 0;
-            currentWorksheet.score = "100%";
+        if (!currentWorksheet) return;
 
-            // Move from active store to completed history
-            store = store.filter(item => String(item.id) !== String(currentWorksheet.id));
-            completedHistory.unshift(currentWorksheet);
+        const inputs = document.querySelectorAll('.student-answer-input');
+        let correctCount = 0;
+        let totalCount = inputs.length;
 
-            localStorage.setItem('soroban_assignments_store', JSON.stringify(store));
-            localStorage.setItem('soroban_completed_history', JSON.stringify(completedHistory));
+        inputs.forEach(input => {
+            const val = parseFloat(input.value);
+            const expected = parseFloat(input.dataset.expected);
+            if (!isNaN(val) && val === expected) {
+                correctCount++;
+            }
+        });
 
-            alert('Worksheet submitted successfully!');
-            window.location.href = '/student';
-        }
+        const scorePct = Math.round((correctCount / totalCount) * 100);
+        const scoreString = scorePct + "% Score";
+
+        // Remove from active store
+        store = store.filter(item => String(item.id) !== String(currentWorksheet.id));
+        localStorage.setItem('soroban_assignments_store', JSON.stringify(store));
+
+        // Push to Completed History (Student)
+        completedHistory.unshift({
+            id: currentWorksheet.id,
+            title: currentWorksheet.title,
+            category: currentWorksheet.category,
+            score: scoreString
+        });
+        localStorage.setItem('soroban_completed_history', JSON.stringify(completedHistory));
+
+        // Push to Student Grades (Teacher Dashboard)
+        const savedGrades = localStorage.getItem('soroban_student_grades');
+        let grades = savedGrades ? JSON.parse(savedGrades) : [
+            { student: "Leigha", title: "division 1", score: "100% Correct" }
+        ];
+        grades.unshift({
+            student: "Leigha",
+            title: currentWorksheet.title,
+            score: scorePct + "% Correct"
+        });
+        localStorage.setItem('soroban_student_grades', JSON.stringify(grades));
+
+        alert(`Worksheet submitted! Grade: ${scorePct}% (${correctCount}/${totalCount})`);
+        window.location.href = '/student';
     }
 
     document.addEventListener('DOMContentLoaded', initStudentPortal);
