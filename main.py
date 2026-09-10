@@ -68,7 +68,7 @@ TEACHER_DASHBOARD_HTML = """
         .btn {
             padding: 12px 24px; background: #2563eb; color: white; border: none;
             border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 0.95em;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
         }
 
         .btn-secondary { background: #64748b; }
@@ -176,7 +176,7 @@ TEACHER_DASHBOARD_HTML = """
     </div>
 
     <script>
-    const INITIAL_ASSIGNMENTS = [
+    const HARDCODED_10_PROBLEMS = [
       { 
         id: '1', 
         title: "addition 1", 
@@ -255,18 +255,14 @@ TEACHER_DASHBOARD_HTML = """
       }
     ];
 
-    let store = [];
+    let store = HARDCODED_10_PROBLEMS;
     let currentCategory = 'All';
 
     function loadStore() {
-      // Force overwriting local cache key
-      localStorage.setItem('soroban_10_problems_v999', JSON.stringify(INITIAL_ASSIGNMENTS));
-      store = INITIAL_ASSIGNMENTS;
+      // Clear all legacy storage keys completely
+      localStorage.clear();
+      store = HARDCODED_10_PROBLEMS;
       renderAll();
-    }
-
-    function saveStore() {
-      localStorage.setItem('soroban_10_problems_v999', JSON.stringify(store));
     }
 
     function toggleFlashSpeedInput() {
@@ -332,7 +328,6 @@ TEACHER_DASHBOARD_HTML = """
       const target = store.find(d => String(d.id) === String(draftId));
       if (target) {
         target.is_assigned = 1;
-        saveStore();
         renderAll();
       }
     }
@@ -365,7 +360,6 @@ TEACHER_DASHBOARD_HTML = """
       };
 
       store.push(newItem);
-      saveStore();
       renderAll();
 
       document.getElementById('title-input').value = '';
@@ -599,7 +593,7 @@ STUDENT_HTML = """
     </div>
 
     <script>
-    const INITIAL_ASSIGNMENTS = [
+    const HARDCODED_10_PROBLEMS = [
       { 
         id: '1', 
         title: "addition 1", 
@@ -678,12 +672,11 @@ STUDENT_HTML = """
       }
     ];
 
-    let store = [];
+    let store = HARDCODED_10_PROBLEMS;
 
     function initStudentPortal() {
-        // ALWAYS overwrite with the 10-problem defaults
-        localStorage.setItem('soroban_10_problems_v999', JSON.stringify(INITIAL_ASSIGNMENTS));
-        store = INITIAL_ASSIGNMENTS;
+        localStorage.clear(); // Wipes old local cache completely
+        store = HARDCODED_10_PROBLEMS;
 
         const params = new URLSearchParams(window.location.search);
         const activeId = params.get('assignment_id');
