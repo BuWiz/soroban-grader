@@ -184,15 +184,9 @@ TEACHER_DASHBOARD_HTML = """
         type: "Addition", 
         is_assigned: 1, 
         problems: [
-          {equation: "15 + 27", answer: 42}, 
-          {equation: "34 + 18", answer: 52},
-          {equation: "49 + 23", answer: 72},
-          {equation: "67 + 15", answer: 82},
-          {equation: "88 + 24", answer: 112},
-          {equation: "53 + 39", answer: 92},
-          {equation: "76 + 18", answer: 94},
-          {equation: "29 + 64", answer: 93},
-          {equation: "81 + 19", answer: 100},
+          {equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}, {equation: "49 + 23", answer: 72},
+          {equation: "67 + 15", answer: 82}, {equation: "88 + 24", answer: 112}, {equation: "53 + 39", answer: 92},
+          {equation: "76 + 18", answer: 94}, {equation: "29 + 64", answer: 93}, {equation: "81 + 19", answer: 100},
           {equation: "95 + 47", answer: 142}
         ] 
       },
@@ -203,15 +197,9 @@ TEACHER_DASHBOARD_HTML = """
         type: "Division", 
         is_assigned: 1, 
         problems: [
-          {equation: "12 / 3", answer: 4}, 
-          {equation: "24 / 6", answer: 4},
-          {equation: "45 / 5", answer: 9},
-          {equation: "72 / 8", answer: 9},
-          {equation: "81 / 9", answer: 9},
-          {equation: "36 / 4", answer: 9},
-          {equation: "48 / 6", answer: 8},
-          {equation: "56 / 7", answer: 8},
-          {equation: "63 / 9", answer: 7},
+          {equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}, {equation: "45 / 5", answer: 9},
+          {equation: "72 / 8", answer: 9}, {equation: "81 / 9", answer: 9}, {equation: "36 / 4", answer: 9},
+          {equation: "48 / 6", answer: 8}, {equation: "56 / 7", answer: 8}, {equation: "63 / 9", answer: 7},
           {equation: "90 / 10", answer: 9}
         ] 
       },
@@ -222,15 +210,9 @@ TEACHER_DASHBOARD_HTML = """
         type: "Multiplication", 
         is_assigned: 1, 
         problems: [
-          {equation: "12 x 15", answer: 180}, 
-          {equation: "24 x 11", answer: 264},
-          {equation: "35 x 14", answer: 490},
-          {equation: "42 x 18", answer: 756},
-          {equation: "56 x 23", answer: 1288},
-          {equation: "64 x 31", answer: 1984},
-          {equation: "15 x 15", answer: 225},
-          {equation: "22 x 25", answer: 550},
-          {equation: "30 x 45", answer: 1350},
+          {equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}, {equation: "35 x 14", answer: 490},
+          {equation: "42 x 18", answer: 756}, {equation: "56 x 23", answer: 1288}, {equation: "64 x 31", answer: 1984},
+          {equation: "15 x 15", answer: 225}, {equation: "22 x 25", answer: 550}, {equation: "30 x 45", answer: 1350},
           {equation: "50 x 12", answer: 600}
         ] 
       },
@@ -241,15 +223,9 @@ TEACHER_DASHBOARD_HTML = """
         type: "Subtraction", 
         is_assigned: 1, 
         problems: [
-          {equation: "100 - 3", answer: 97}, 
-          {equation: "100 - 14", answer: 86},
-          {equation: "100 - 27", answer: 73},
-          {equation: "100 - 42", answer: 58},
-          {equation: "100 - 65", answer: 35},
-          {equation: "100 - 78", answer: 22},
-          {equation: "100 - 89", answer: 11},
-          {equation: "100 - 33", answer: 67},
-          {equation: "100 - 51", answer: 49},
+          {equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}, {equation: "100 - 27", answer: 73},
+          {equation: "100 - 42", answer: 58}, {equation: "100 - 65", answer: 35}, {equation: "100 - 78", answer: 22},
+          {equation: "100 - 89", answer: 11}, {equation: "100 - 33", answer: 67}, {equation: "100 - 51", answer: 49},
           {equation: "100 - 92", answer: 8}
         ] 
       }
@@ -259,9 +235,13 @@ TEACHER_DASHBOARD_HTML = """
     let currentCategory = 'All';
 
     function loadStore() {
-      // Clear all legacy storage keys completely
-      localStorage.clear();
-      store = HARDCODED_10_PROBLEMS;
+      const saved = localStorage.getItem('soroban_assignments_store');
+      if (saved) {
+        try { store = JSON.parse(saved); } catch(e) { store = HARDCODED_10_PROBLEMS; }
+      } else {
+        store = HARDCODED_10_PROBLEMS;
+        localStorage.setItem('soroban_assignments_store', JSON.stringify(store));
+      }
       renderAll();
     }
 
@@ -328,6 +308,7 @@ TEACHER_DASHBOARD_HTML = """
       const target = store.find(d => String(d.id) === String(draftId));
       if (target) {
         target.is_assigned = 1;
+        localStorage.setItem('soroban_assignments_store', JSON.stringify(store));
         renderAll();
       }
     }
@@ -360,6 +341,7 @@ TEACHER_DASHBOARD_HTML = """
       };
 
       store.push(newItem);
+      localStorage.setItem('soroban_assignments_store', JSON.stringify(store));
       renderAll();
 
       document.getElementById('title-input').value = '';
@@ -566,13 +548,7 @@ STUDENT_HTML = """
                     🌸 Completed History
                 </div>
                 <div class="card-body" id="completed-assignments-list">
-                    <div class="assignment-row">
-                        <div>
-                            <span class="assignment-title">division 1</span>
-                            <span class="category-badge">Division</span>
-                        </div>
-                        <span style="color: #16a34a; font-weight: 900;">100% Score</span>
-                    </div>
+                    <p style="color: #64748b;">No completed assignments yet.</p>
                 </div>
             </div>
         </div>
@@ -601,15 +577,9 @@ STUDENT_HTML = """
         type: "Addition", 
         is_assigned: 1, 
         problems: [
-          {equation: "15 + 27", answer: 42}, 
-          {equation: "34 + 18", answer: 52},
-          {equation: "49 + 23", answer: 72},
-          {equation: "67 + 15", answer: 82},
-          {equation: "88 + 24", answer: 112},
-          {equation: "53 + 39", answer: 92},
-          {equation: "76 + 18", answer: 94},
-          {equation: "29 + 64", answer: 93},
-          {equation: "81 + 19", answer: 100},
+          {equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}, {equation: "49 + 23", answer: 72},
+          {equation: "67 + 15", answer: 82}, {equation: "88 + 24", answer: 112}, {equation: "53 + 39", answer: 92},
+          {equation: "76 + 18", answer: 94}, {equation: "29 + 64", answer: 93}, {equation: "81 + 19", answer: 100},
           {equation: "95 + 47", answer: 142}
         ] 
       },
@@ -620,15 +590,9 @@ STUDENT_HTML = """
         type: "Division", 
         is_assigned: 1, 
         problems: [
-          {equation: "12 / 3", answer: 4}, 
-          {equation: "24 / 6", answer: 4},
-          {equation: "45 / 5", answer: 9},
-          {equation: "72 / 8", answer: 9},
-          {equation: "81 / 9", answer: 9},
-          {equation: "36 / 4", answer: 9},
-          {equation: "48 / 6", answer: 8},
-          {equation: "56 / 7", answer: 8},
-          {equation: "63 / 9", answer: 7},
+          {equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}, {equation: "45 / 5", answer: 9},
+          {equation: "72 / 8", answer: 9}, {equation: "81 / 9", answer: 9}, {equation: "36 / 4", answer: 9},
+          {equation: "48 / 6", answer: 8}, {equation: "56 / 7", answer: 8}, {equation: "63 / 9", answer: 7},
           {equation: "90 / 10", answer: 9}
         ] 
       },
@@ -639,15 +603,9 @@ STUDENT_HTML = """
         type: "Multiplication", 
         is_assigned: 1, 
         problems: [
-          {equation: "12 x 15", answer: 180}, 
-          {equation: "24 x 11", answer: 264},
-          {equation: "35 x 14", answer: 490},
-          {equation: "42 x 18", answer: 756},
-          {equation: "56 x 23", answer: 1288},
-          {equation: "64 x 31", answer: 1984},
-          {equation: "15 x 15", answer: 225},
-          {equation: "22 x 25", answer: 550},
-          {equation: "30 x 45", answer: 1350},
+          {equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}, {equation: "35 x 14", answer: 490},
+          {equation: "42 x 18", answer: 756}, {equation: "56 x 23", answer: 1288}, {equation: "64 x 31", answer: 1984},
+          {equation: "15 x 15", answer: 225}, {equation: "22 x 25", answer: 550}, {equation: "30 x 45", answer: 1350},
           {equation: "50 x 12", answer: 600}
         ] 
       },
@@ -658,33 +616,40 @@ STUDENT_HTML = """
         type: "Subtraction", 
         is_assigned: 1, 
         problems: [
-          {equation: "100 - 3", answer: 97}, 
-          {equation: "100 - 14", answer: 86},
-          {equation: "100 - 27", answer: 73},
-          {equation: "100 - 42", answer: 58},
-          {equation: "100 - 65", answer: 35},
-          {equation: "100 - 78", answer: 22},
-          {equation: "100 - 89", answer: 11},
-          {equation: "100 - 33", answer: 67},
-          {equation: "100 - 51", answer: 49},
+          {equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}, {equation: "100 - 27", answer: 73},
+          {equation: "100 - 42", answer: 58}, {equation: "100 - 65", answer: 35}, {equation: "100 - 78", answer: 22},
+          {equation: "100 - 89", answer: 11}, {equation: "100 - 33", answer: 67}, {equation: "100 - 51", answer: 49},
           {equation: "100 - 92", answer: 8}
         ] 
       }
     ];
 
-    let store = HARDCODED_10_PROBLEMS;
+    let store = [];
+    let completedHistory = [];
+    let currentWorksheet = null;
 
     function initStudentPortal() {
-        localStorage.clear(); // Wipes old local cache completely
-        store = HARDCODED_10_PROBLEMS;
+        const savedAssignments = localStorage.getItem('soroban_assignments_store');
+        if (savedAssignments) {
+            try { store = JSON.parse(savedAssignments); } catch(e) { store = HARDCODED_10_PROBLEMS; }
+        } else {
+            store = HARDCODED_10_PROBLEMS;
+            localStorage.setItem('soroban_assignments_store', JSON.stringify(store));
+        }
+
+        const savedCompleted = localStorage.getItem('soroban_completed_history');
+        if (savedCompleted) {
+            try { completedHistory = JSON.parse(savedCompleted); } catch(e) { completedHistory = []; }
+        }
 
         const params = new URLSearchParams(window.location.search);
         const activeId = params.get('assignment_id');
 
         if (activeId) {
-            const worksheet = store.find(item => String(item.id) === String(activeId));
-            if (worksheet) {
-                renderWorksheetView(worksheet);
+            currentWorksheet = store.find(item => String(item.id) === String(activeId)) || 
+                               completedHistory.find(item => String(item.id) === String(activeId));
+            if (currentWorksheet) {
+                renderWorksheetView(currentWorksheet);
                 return;
             }
         }
@@ -713,6 +678,21 @@ STUDENT_HTML = """
         } else {
             dueContainer.innerHTML = '<p style="color: #64748b;">No due assignments right now!</p>';
         }
+
+        const completedContainer = document.getElementById('completed-assignments-list');
+        if (completedHistory.length > 0) {
+            completedContainer.innerHTML = completedHistory.map(item => `
+                <div class="assignment-row">
+                    <div>
+                        <a href="/student?assignment_id=${item.id}" class="assignment-title" style="text-decoration: underline; color: #1e293b;">${item.title}</a>
+                        <span class="category-badge">${item.category || 'General'}</span>
+                    </div>
+                    <span style="color: #16a34a; font-weight: 900;">${item.score || '100%'} Score</span>
+                </div>
+            `).join('');
+        } else {
+            completedContainer.innerHTML = '<p style="color: #64748b;">No completed assignments yet.</p>';
+        }
     }
 
     function renderWorksheetView(worksheet) {
@@ -739,8 +719,20 @@ STUDENT_HTML = """
 
     function handleFormSubmit(e) {
         e.preventDefault();
-        alert('Worksheet submitted successfully!');
-        window.location.href = '/student';
+        if (currentWorksheet) {
+            currentWorksheet.is_assigned = 0;
+            currentWorksheet.score = "100%";
+
+            // Move from active store to completed history
+            store = store.filter(item => String(item.id) !== String(currentWorksheet.id));
+            completedHistory.unshift(currentWorksheet);
+
+            localStorage.setItem('soroban_assignments_store', JSON.stringify(store));
+            localStorage.setItem('soroban_completed_history', JSON.stringify(completedHistory));
+
+            alert('Worksheet submitted successfully!');
+            window.location.href = '/student';
+        }
     }
 
     document.addEventListener('DOMContentLoaded', initStudentPortal);
