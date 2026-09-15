@@ -317,21 +317,12 @@ TEACHER_DASHBOARD_HTML = """
       }
     }
 
-    // Robust arithmetic solver for long chains like "4 + 5 - 3 + 8..."
+    // Clean, direct arithmetic evaluator using native JS eval safely
     function evaluateMathExpression(expr) {
       try {
-        let sanitized = expr.replace(/x/g, '*').replace(/÷/g, '/').replace(/\s+/g, '');
-        // If it's a standard simple expression with multiplication/division
-        if (!/^[0-9+\-*/.]+$/.test(sanitized)) return 0;
-        
-        let tokens = sanitized.match(/([+\-]?)([0-9.]+)/g);
-        if (!tokens) return eval(sanitized);
-        
-        let sum = 0;
-        tokens.forEach(t => {
-          sum += parseFloat(t);
-        });
-        return Math.round(sum * 1000) / 1000;
+        let sanitized = expr.replace(/x/g, '*').replace(/÷/g, '/').replace(/[^0-9+\-*/().]/g, '');
+        if (!sanitized) return 0;
+        return Number(eval(sanitized).toFixed(4));
       } catch(e) {
         return 0;
       }
