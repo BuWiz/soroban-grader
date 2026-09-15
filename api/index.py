@@ -115,7 +115,7 @@ TEACHER_DASHBOARD_HTML = """
 
         <div class="form-group">
             <label>Assignment Title:</label>
-            <input type="text" id="title-input" placeholder="e.g. Addition Set 1">
+            <input type="text" id="title-input" placeholder="e.g. Flash Anzan 1">
         </div>
 
         <div class="form-group">
@@ -136,7 +136,7 @@ TEACHER_DASHBOARD_HTML = """
 
         <div class="form-group">
             <label>Parsed Problems (One math expression per line):</label>
-            <textarea id="problems-input" rows="5" placeholder="12 x 15&#10;24 x 11&#10;35 x 14&#10;42 x 18&#10;56 x 23"></textarea>
+            <textarea id="problems-input" rows="5" placeholder="4 + 5 - 3 + 8&#10;7 + 2 - 8 + 6"></textarea>
         </div>
 
         <div class="btn-group">
@@ -181,39 +181,10 @@ TEACHER_DASHBOARD_HTML = """
     <script>
     const HARDCODED_10_PROBLEMS = [
       { 
-        id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, 
+        id: 'f1', title: "f 1", category: "Flash Anzan", type: "Flash Anzan", is_assigned: 1, 
         problems: [
-          {equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}, {equation: "49 + 23", answer: 72},
-          {equation: "67 + 15", answer: 82}, {equation: "88 + 24", answer: 112}, {equation: "53 + 39", answer: 92},
-          {equation: "76 + 18", answer: 94}, {equation: "29 + 64", answer: 93}, {equation: "81 + 19", answer: 100},
-          {equation: "95 + 47", answer: 142}
-        ] 
-      },
-      { 
-        id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, 
-        problems: [
-          {equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}, {equation: "45 / 5", answer: 9},
-          {equation: "72 / 8", answer: 9}, {equation: "81 / 9", answer: 9}, {equation: "36 / 4", answer: 9},
-          {equation: "48 / 6", answer: 8}, {equation: "56 / 7", answer: 8}, {equation: "63 / 9", answer: 7},
-          {equation: "90 / 10", answer: 9}
-        ] 
-      },
-      { 
-        id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 1, 
-        problems: [
-          {equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}, {equation: "35 x 14", answer: 490},
-          {equation: "42 x 18", answer: 756}, {equation: "56 x 23", answer: 1288}, {equation: "64 x 31", answer: 1984},
-          {equation: "15 x 15", answer: 225}, {equation: "22 x 25", answer: 550}, {equation: "30 x 45", answer: 1350},
-          {equation: "50 x 12", answer: 600}
-        ] 
-      },
-      { 
-        id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 1, 
-        problems: [
-          {equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}, {equation: "100 - 27", answer: 73},
-          {equation: "100 - 42", answer: 58}, {equation: "100 - 65", answer: 35}, {equation: "100 - 78", answer: 22},
-          {equation: "100 - 89", answer: 11}, {equation: "100 - 33", answer: 67}, {equation: "100 - 51", answer: 49},
-          {equation: "100 - 92", answer: 8}
+          {equation: "4 + 5 - 3 + 8 - 6 + 7 - 2 - 5 + 9 - 4", answer: 13},
+          {equation: "7 + 2 - 8 + 6 + 3 - 5 + 4 - 7 + 9 - 1", answer: 10}
         ] 
       }
     ];
@@ -358,9 +329,20 @@ TEACHER_DASHBOARD_HTML = """
       }
 
       const rawLines = problemsText.split('\\n').filter(line => line.trim() !== '');
-      const problems = rawLines.length > 0 
-        ? rawLines.map(line => ({ equation: line, answer: 0 }))
-        : [{ equation: "10 + 5", answer: 15 }];
+      const problems = rawLines.map(line => {
+        let cleanEq = line.replace(/x/g, '*').replace(/÷/g, '/');
+        let calculatedAnswer = 0;
+        try {
+          calculatedAnswer = eval(cleanEq);
+        } catch(e) {
+          calculatedAnswer = 0;
+        }
+        return { equation: line.trim(), answer: calculatedAnswer };
+      });
+
+      if (problems.length === 0) {
+        problems.push({ equation: "10 + 5", answer: 15 });
+      }
 
       const newItem = {
         id: String(Date.now()),
@@ -512,39 +494,10 @@ STUDENT_HTML = """
     <script>
     const HARDCODED_10_PROBLEMS = [
       { 
-        id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, 
+        id: 'f1', title: "f 1", category: "Flash Anzan", type: "Flash Anzan", is_assigned: 1, 
         problems: [
-          {equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}, {equation: "49 + 23", answer: 72},
-          {equation: "67 + 15", answer: 82}, {equation: "88 + 24", answer: 112}, {equation: "53 + 39", answer: 92},
-          {equation: "76 + 18", answer: 94}, {equation: "29 + 64", answer: 93}, {equation: "81 + 19", answer: 100},
-          {equation: "95 + 47", answer: 142}
-        ] 
-      },
-      { 
-        id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, 
-        problems: [
-          {equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}, {equation: "45 / 5", answer: 9},
-          {equation: "72 / 8", answer: 9}, {equation: "81 / 9", answer: 9}, {equation: "36 / 4", answer: 9},
-          {equation: "48 / 6", answer: 8}, {equation: "56 / 7", answer: 8}, {equation: "63 / 9", answer: 7},
-          {equation: "90 / 10", answer: 9}
-        ] 
-      },
-      { 
-        id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 1, 
-        problems: [
-          {equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}, {equation: "35 x 14", answer: 490},
-          {equation: "42 x 18", answer: 756}, {equation: "56 x 23", answer: 1288}, {equation: "64 x 31", answer: 1984},
-          {equation: "15 x 15", answer: 225}, {equation: "22 x 25", answer: 550}, {equation: "30 x 45", answer: 1350},
-          {equation: "50 x 12", answer: 600}
-        ] 
-      },
-      { 
-        id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 1, 
-        problems: [
-          {equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}, {equation: "100 - 27", answer: 73},
-          {equation: "100 - 42", answer: 58}, {equation: "100 - 65", answer: 35}, {equation: "100 - 78", answer: 22},
-          {equation: "100 - 89", answer: 11}, {equation: "100 - 33", answer: 67}, {equation: "100 - 51", answer: 49},
-          {equation: "100 - 92", answer: 8}
+          {equation: "4 + 5 - 3 + 8 - 6 + 7 - 2 - 5 + 9 - 4", answer: 13},
+          {equation: "7 + 2 - 8 + 6 + 3 - 5 + 4 - 7 + 9 - 1", answer: 10}
         ] 
       }
     ];
