@@ -262,16 +262,10 @@ TEACHER_DASHBOARD_HTML = """
     }
 
     function reassignToStudent(assignmentId) {
-      let activeDue = JSON.parse(localStorage.getItem('soroban_due_assignments') || '[]');
       const target = store.find(item => String(item.id) === String(assignmentId));
       if (target) {
-        let existsInDue = activeDue.some(item => String(item.id) === String(assignmentId));
-        if (!existsInDue) {
-            activeDue.push(target);
-            localStorage.setItem('soroban_due_assignments', JSON.stringify(activeDue));
-        }
+        window.location.href = '/student?assignment_id=' + assignmentId;
       }
-      window.location.href = '/student?assignment_id=' + assignmentId;
     }
 
     function renderDrafts() {
@@ -320,12 +314,10 @@ TEACHER_DASHBOARD_HTML = """
       }
     }
 
-    // Ultra-reliable line parser: supports explicit answers (e.g. "4 + 5 = 9") or parses continuous sign chains accurately
     function parseProblemLine(line) {
       let cleanLine = line.trim();
       let explicitAnswer = null;
 
-      // Check if user provided an explicit answer using '=' or ':'
       if (cleanLine.includes('=')) {
         let parts = cleanLine.split('=');
         cleanLine = parts[0].trim();
@@ -340,10 +332,8 @@ TEACHER_DASHBOARD_HTML = """
         return { equation: cleanLine, answer: explicitAnswer };
       }
 
-      // Otherwise, parse the sequence of numbers and operations manually (e.g., "4 + 5 - 3 + 8")
       try {
         let expr = cleanLine.replace(/x/g, '*').replace(/÷/g, '/');
-        // Ensure first number is treated correctly even if positive
         let tokens = expr.match(/([+\-]?)\s*([0-9.]+)/g);
         if (!tokens) return { equation: cleanLine, answer: 0 };
 
@@ -536,7 +526,6 @@ STUDENT_HTML = """
     ];
 
     let masterStore = [];
-    let dueAssignments = [];
     let completedHistory = [];
     let currentWorksheet = null;
 
@@ -552,18 +541,6 @@ STUDENT_HTML = """
         const savedCompleted = localStorage.getItem('soroban_completed_history');
         if (savedCompleted) {
             try { completedHistory = JSON.parse(savedCompleted); } catch(e) { completedHistory = []; }
-        }
-
-        const savedDue = localStorage.getItem('soroban_due_assignments');
-        if (savedDue) {
-            try { dueAssignments = JSON.parse(savedDue); } catch(e) { dueAssignments = []; }
-        } else {
-            dueAssignments = masterStore.filter(a => a.is_assigned === 1);
-        }
-
-        if (dueAssignments.length === 0) {
-            dueAssignments = masterStore.filter(a => a.is_assigned === 1);
-            localStorage.setItem('soroban_due_assignments', JSON.stringify(dueAssignments));
         }
 
         const params = new URLSearchParams(window.location.search);
@@ -585,8 +562,11 @@ STUDENT_HTML = """
         document.getElementById('worksheet-active-view').style.display = 'none';
 
         const dueContainer = document.getElementById('due-assignments-list');
-        dueContainer.innerHTML = dueAssignments.length > 0
-            ? dueAssignments.map(item => `
+        // Directly pull all items from the master store that are marked as assigned (is_assigned === 1)
+        const activeItems = masterStore.filter(item => item.is_assigned === 1);
+
+        dueContainer.innerHTML = activeItems.length > 0
+            ? activeItems.map(item => `
                 <div class="assignment-row">
                     <div>
                         <span class="assignment-title">${item.title}</span>
@@ -646,9 +626,6 @@ STUDENT_HTML = """
         const scorePct = Math.round((correctCount / totalCount) * 100);
         const scoreString = scorePct + "%";
 
-        dueAssignments = dueAssignments.filter(item => String(item.id) !== String(currentWorksheet.id));
-        localStorage.setItem('soroban_due_assignments', JSON.stringify(dueAssignments));
-
         completedHistory.unshift({
             id: currentWorksheet.id,
             title: currentWorksheet.title,
@@ -685,7 +662,4 @@ def teacher_portal():
 @app.route('/student')
 @app.route('/student.html')
 def student_portal():
-    return render_template_string(STUDENT_HTML)
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5050, debug=True) 
+    
