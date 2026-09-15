@@ -179,6 +179,15 @@ TEACHER_DASHBOARD_HTML = """
     </div>
 
     <script>
+    // Define toggleFlashSpeedInput FIRST so it's globally available immediately
+    function toggleFlashSpeedInput() {
+        const category = document.getElementById('category-input').value;
+        const speedGroup = document.getElementById('flash-speed-group');
+        if (speedGroup) {
+            speedGroup.style.display = (category === 'Flash Anzan') ? 'block' : 'none';
+        }
+    }
+
     const HARDCODED_10_PROBLEMS = [
       { 
         id: 'f1', title: "f 1", category: "Flash Anzan", type: "Flash Anzan", is_assigned: 1, 
@@ -203,11 +212,6 @@ TEACHER_DASHBOARD_HTML = """
       }
       renderAll();
       renderGrades();
-    }
-
-    function toggleFlashSpeedInput() {
-      const category = document.getElementById('category-input').value;
-      document.getElementById('flash-speed-group').style.display = (category === 'Flash Anzan') ? 'block' : 'none';
     }
 
     function renderGrades() {
@@ -338,8 +342,7 @@ TEACHER_DASHBOARD_HTML = """
         return;
       }
 
-      // FIX: split by actual newline \n instead of escaped string \\n
-      const rawLines = problemsText.split('\n').filter(line => line.trim() !== '');
+      const rawLines = problemsText.split('\\n').filter(line => line.trim() !== '');
       const problems = rawLines.map(line => {
         let calculatedAnswer = evaluateMathExpression(line);
         return { equation: line.trim(), answer: calculatedAnswer };
