@@ -135,8 +135,8 @@ TEACHER_DASHBOARD_HTML = """
         </div>
 
         <div class="form-group">
-            <label>Parsed Problems (One math expression per line):</label>
-            <textarea id="problems-input" rows="5" placeholder="4 + 5 - 3 + 8&#10;7 + 2 - 8 + 6"></textarea>
+            <label>Parsed Problems (Format: <code>4 + 5 - 3 = 6</code> OR just the expression):</label>
+            <textarea id="problems-input" rows="5" placeholder="4 + 5 - 3 + 8 = 14&#10;7 + 2 - 8 = 1"></textarea>
         </div>
 
         <div class="btn-group">
@@ -179,7 +179,6 @@ TEACHER_DASHBOARD_HTML = """
     </div>
 
     <script>
-    // Define toggleFlashSpeedInput FIRST so it's globally available immediately
     function toggleFlashSpeedInput() {
         const category = document.getElementById('category-input').value;
         const speedGroup = document.getElementById('flash-speed-group');
@@ -321,13 +320,42 @@ TEACHER_DASHBOARD_HTML = """
       }
     }
 
-    function evaluateMathExpression(expr) {
+    // Ultra-reliable line parser: supports explicit answers (e.g. "4 + 5 = 9") or parses continuous sign chains accurately
+    function parseProblemLine(line) {
+      let cleanLine = line.trim();
+      let explicitAnswer = null;
+
+      // Check if user provided an explicit answer using '=' or ':'
+      if (cleanLine.includes('=')) {
+        let parts = cleanLine.split('=');
+        cleanLine = parts[0].trim();
+        explicitAnswer = parseFloat(parts[1]);
+      } else if (cleanLine.includes(':')) {
+        let parts = cleanLine.split(':');
+        cleanLine = parts[0].trim();
+        explicitAnswer = parseFloat(parts[1]);
+      }
+
+      if (!isNaN(explicitAnswer) && explicitAnswer !== null) {
+        return { equation: cleanLine, answer: explicitAnswer };
+      }
+
+      // Otherwise, parse the sequence of numbers and operations manually (e.g., "4 + 5 - 3 + 8")
       try {
-        let sanitized = expr.replace(/x/g, '*').replace(/÷/g, '/').replace(/[^0-9+\-*/().]/g, '');
-        if (!sanitized) return 0;
-        return Number(eval(sanitized).toFixed(4));
-      } catch(e) {
-        return 0;
+        let expr = cleanLine.replace(/x/g, '*').replace(/÷/g, '/');
+        // Ensure first number is treated correctly even if positive
+        let tokens = expr.match(/([+\-]?)\s*([0-9.]+)/g);
+        if (!tokens) return { equation: cleanLine, answer: 0 };
+
+        let total = 0;
+        tokens.forEach(t => {
+          let num = parseFloat(t.replace(/\s+/g, ''));
+          total += num;
+        });
+
+        return { equation: cleanLine, answer: Math.round(total * 1000) / 1000 };
+      } catch (e) {
+        return { equation: cleanLine, answer: 0 };
       }
     }
 
@@ -343,10 +371,7 @@ TEACHER_DASHBOARD_HTML = """
       }
 
       const rawLines = problemsText.split('\\n').filter(line => line.trim() !== '');
-      const problems = rawLines.map(line => {
-        let calculatedAnswer = evaluateMathExpression(line);
-        return { equation: line.trim(), answer: calculatedAnswer };
-      });
+      const problems = rawLines.map(line => parseProblemLine(line));
 
       if (problems.length === 0) {
         problems.push({ equation: "10 + 5", answer: 15 });
