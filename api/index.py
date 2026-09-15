@@ -317,7 +317,6 @@ TEACHER_DASHBOARD_HTML = """
       }
     }
 
-    // Clean, direct arithmetic evaluator using native JS eval safely
     function evaluateMathExpression(expr) {
       try {
         let sanitized = expr.replace(/x/g, '*').replace(/÷/g, '/').replace(/[^0-9+\-*/().]/g, '');
@@ -339,7 +338,8 @@ TEACHER_DASHBOARD_HTML = """
         return;
       }
 
-      const rawLines = problemsText.split('\\n').filter(line => line.trim() !== '');
+      // FIX: split by actual newline \n instead of escaped string \\n
+      const rawLines = problemsText.split('\n').filter(line => line.trim() !== '');
       const problems = rawLines.map(line => {
         let calculatedAnswer = evaluateMathExpression(line);
         return { equation: line.trim(), answer: calculatedAnswer };
