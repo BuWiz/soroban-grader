@@ -58,7 +58,7 @@ TEACHER_DASHBOARD_HTML = """
 
         label { display: block; font-weight: 700; margin-bottom: 8px; color: var(--text-dark); }
 
-        input[type="text"], textarea, select {
+        input[type="text"], input[type="number"], textarea, select {
             width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 12px;
             font-family: inherit; font-size: 0.95em; box-sizing: border-box; outline: none;
         }
@@ -120,13 +120,18 @@ TEACHER_DASHBOARD_HTML = """
 
         <div class="form-group">
             <label>Worksheet Category:</label>
-            <select id="category-input">
+            <select id="category-input" onchange="toggleFlashSpeedInput()">
                 <option value="Addition">Addition</option>
                 <option value="Division">Division</option>
                 <option value="Multiplication">Multiplication</option>
                 <option value="Subtraction">Subtraction</option>
                 <option value="Flash Anzan">Flash Anzan</option>
             </select>
+        </div>
+
+        <div class="form-group" id="flash-speed-group" style="display: none;">
+            <label>Flash Speed (Milliseconds per term):</label>
+            <input type="number" id="flash-speed-input" value="3000" placeholder="3000">
         </div>
 
         <div class="form-group">
@@ -227,6 +232,11 @@ TEACHER_DASHBOARD_HTML = """
       }
       renderAll();
       renderGrades();
+    }
+
+    function toggleFlashSpeedInput() {
+      const category = document.getElementById('category-input').value;
+      document.getElementById('flash-speed-group').style.display = (category === 'Flash Anzan') ? 'block' : 'none';
     }
 
     function renderGrades() {
@@ -339,6 +349,7 @@ TEACHER_DASHBOARD_HTML = """
     function submitWorksheet(isAssigned) {
       const title = document.getElementById('title-input').value;
       const category = document.getElementById('category-input').value;
+      const flashSpeed = parseInt(document.getElementById('flash-speed-input').value) || 3000;
       const problemsText = document.getElementById('problems-input').value;
 
       if (!title) {
@@ -357,6 +368,8 @@ TEACHER_DASHBOARD_HTML = """
         category,
         type: category,
         is_assigned: isAssigned,
+        is_flash: category === 'Flash Anzan' ? 1 : 0,
+        flash_speed_ms: flashSpeed,
         problems
       };
 
