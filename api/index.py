@@ -148,7 +148,7 @@ TEACHER_DASHBOARD_HTML = """
 
         <h2>Active Student Work Library</h2>
         <div class="section-block">
-            <div class="tabs-container">
+            <div class="tabs-container" id="active-tabs">
                 <button class="tab-btn active" onclick="filterCategory('All', this)">All</button>
                 <button class="tab-btn" onclick="filterCategory('Addition', this)">Addition</button>
                 <button class="tab-btn" onclick="filterCategory('Division', this)">Division</button>
@@ -161,6 +161,14 @@ TEACHER_DASHBOARD_HTML = """
 
         <h2>Saved Draft Library</h2>
         <div class="section-block">
+            <div class="tabs-container" id="draft-tabs">
+                <button class="tab-btn active" onclick="filterDraftCategory('All', this)">All</button>
+                <button class="tab-btn" onclick="filterDraftCategory('Addition', this)">Addition</button>
+                <button class="tab-btn" onclick="filterDraftCategory('Division', this)">Division</button>
+                <button class="tab-btn" onclick="filterDraftCategory('Multiplication', this)">Multiplication</button>
+                <button class="tab-btn" onclick="filterDraftCategory('Subtraction', this)">Subtraction</button>
+                <button class="tab-btn" onclick="filterDraftCategory('Flash Anzan', this)">Flash Anzan</button>
+            </div>
             <div id="draft-assignments-container"></div>
         </div>
     </div>
@@ -207,6 +215,7 @@ TEACHER_DASHBOARD_HTML = """
 
     let store = [];
     let currentCategory = 'All';
+    let currentDraftCategory = 'All';
 
     function loadStore() {
       const saved = localStorage.getItem('soroban_assignments_store');
@@ -286,6 +295,11 @@ TEACHER_DASHBOARD_HTML = """
       if (!draftsContainer) return;
 
       let draftItems = store.filter(item => item.is_assigned === 0);
+      if (currentDraftCategory !== 'All') {
+        draftItems = draftItems.filter(d => 
+          (d.category || d.type || '').toLowerCase() === currentDraftCategory.toLowerCase()
+        );
+      }
 
       draftsContainer.innerHTML = draftItems.length > 0
         ? draftItems.map(d => `
@@ -294,14 +308,23 @@ TEACHER_DASHBOARD_HTML = """
               <button onclick="submitDraftDirectly('${d.id}')" class="btn-assign">Submit</button>
             </div>
           `).join('')
-        : '<p style="color: #64748b;">No saved drafts found.</p>';
+        : `<p style="color: #64748b;">No saved drafts found under ${currentDraftCategory}.</p>`;
     }
 
     function filterCategory(category, btnElement) {
       currentCategory = category;
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      const buttons = document.querySelectorAll('#active-tabs .tab-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
       if (btnElement) btnElement.classList.add('active');
       renderActiveAssignments();
+    }
+
+    function filterDraftCategory(category, btnElement) {
+      currentDraftCategory = category;
+      const buttons = document.querySelectorAll('#draft-tabs .tab-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
+      if (btnElement) btnElement.classList.add('active');
+      renderDrafts();
     }
 
     function submitDraftDirectly(draftId) {
@@ -666,4 +689,4 @@ def student_portal():
     return render_template_string(STUDENT_HTML)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5050, debug=True)
+    app.run(host='0.0.0.0', port=5050, debug=True) 
