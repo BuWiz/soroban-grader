@@ -317,6 +317,26 @@ TEACHER_DASHBOARD_HTML = """
       }
     }
 
+    // Robust arithmetic solver for long chains like "4 + 5 - 3 + 8..."
+    function evaluateMathExpression(expr) {
+      try {
+        let sanitized = expr.replace(/x/g, '*').replace(/÷/g, '/').replace(/\s+/g, '');
+        // If it's a standard simple expression with multiplication/division
+        if (!/^[0-9+\-*/.]+$/.test(sanitized)) return 0;
+        
+        let tokens = sanitized.match(/([+\-]?)([0-9.]+)/g);
+        if (!tokens) return eval(sanitized);
+        
+        let sum = 0;
+        tokens.forEach(t => {
+          sum += parseFloat(t);
+        });
+        return Math.round(sum * 1000) / 1000;
+      } catch(e) {
+        return 0;
+      }
+    }
+
     function submitWorksheet(isAssigned) {
       const title = document.getElementById('title-input').value;
       const category = document.getElementById('category-input').value;
@@ -330,13 +350,7 @@ TEACHER_DASHBOARD_HTML = """
 
       const rawLines = problemsText.split('\\n').filter(line => line.trim() !== '');
       const problems = rawLines.map(line => {
-        let cleanEq = line.replace(/x/g, '*').replace(/÷/g, '/');
-        let calculatedAnswer = 0;
-        try {
-          calculatedAnswer = eval(cleanEq);
-        } catch(e) {
-          calculatedAnswer = 0;
-        }
+        let calculatedAnswer = evaluateMathExpression(line);
         return { equation: line.trim(), answer: calculatedAnswer };
       });
 
