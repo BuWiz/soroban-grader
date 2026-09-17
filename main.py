@@ -37,7 +37,39 @@ TEACHER_DASHBOARD_HTML = """
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
         }
 
-        .
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+
+        .header h1 { margin: 0; font-size: 2.2em; font-weight: 800; color: #312e81; }
+
+        .btn-switch {
+            background: #2563eb; color: white; text-decoration: none; padding: 12px 22px;
+            border-radius: 14px; font-weight: 800; font-size: 0.95em; cursor: pointer; display: inline-block;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3); border: none;
+        }
+
+        .form-group { margin-bottom: 20px; }
+
+        label { display: block; font-weight: 700; margin-bottom: 8px; color: var(--text-dark); }
+
+        input[type="text"], input[type="number"], textarea, select {
+            width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 12px;
+            font-family: inherit; font-size: 0.95em; box-sizing: border-box; outline: none;
+        }
+
+        .btn-group { display: flex; gap: 12px; margin-top: 15px; }
+
+        .btn {
+            padding: 12px 24px; background: #2563eb; color: white; border: none;
+            border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 0.95em;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
 
         .btn-secondary { background: #64748b; }
 
@@ -103,8 +135,8 @@ TEACHER_DASHBOARD_HTML = """
         </div>
 
         <div class="form-group">
-            <label>Parsed Problems (Format: <code>4 + 5 - 3 = 6</code> OR just the expression):</label>
-            <textarea id="problems-input" rows="5" placeholder="4 + 5 - 3 + 8 = 14&#10;7 + 2 - 8 = 1"></textarea>
+            <label>Parsed Problems (Format: <code>12 x 15</code> or <code>4 + 5 - 3 = 6</code>):</label>
+            <textarea id="problems-input" rows="5" placeholder="12 x 15&#10;24 x 11&#10;4 + 5 - 3 = 6"></textarea>
         </div>
 
         <div class="btn-group">
@@ -159,18 +191,6 @@ TEACHER_DASHBOARD_HTML = """
       { 
         id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, 
         problems: [{equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}] 
-      },
-      { 
-        id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, 
-        problems: [{equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}] 
-      },
-      { 
-        id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 1, 
-        problems: [{equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}] 
-      },
-      { 
-        id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 1, 
-        problems: [{equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}] 
       }
     ];
 
@@ -239,7 +259,6 @@ TEACHER_DASHBOARD_HTML = """
     }
 
     function reassignToStudent(assignmentId) {
-      // Clears completion status so it shows back up on student dashboard as due
       let completedHistory = JSON.parse(localStorage.getItem('soroban_completed_history') || '[]');
       completedHistory = completedHistory.filter(item => String(item.id) !== String(assignmentId));
       localStorage.setItem('soroban_completed_history', JSON.stringify(completedHistory));
@@ -293,6 +312,7 @@ TEACHER_DASHBOARD_HTML = """
       }
     }
 
+    // Accurate Math Evaluator supporting Multiplication, Division, Addition, Subtraction, and explicit answers
     function parseProblemLine(line) {
       let cleanLine = line.trim();
       let explicitAnswer = null;
@@ -313,16 +333,11 @@ TEACHER_DASHBOARD_HTML = """
 
       try {
         let expr = cleanLine.replace(/x/g, '*').replace(/÷/g, '/');
-        let tokens = expr.match(/([+\-]?)\s*([0-9.]+)/g);
-        if (!tokens) return { equation: cleanLine, answer: 0 };
-
-        let total = 0;
-        tokens.forEach(t => {
-          let num = parseFloat(t.replace(/\s+/g, ''));
-          total += num;
-        });
-
-        return { equation: cleanLine, answer: Math.round(total * 1000) / 1000 };
+        // Safely evaluate standard mathematical expressions (supports multiplication, division, etc.)
+        let sanitized = expr.replace(/[^0-9+\-*/().]/g, '');
+        if (!sanitized) return { equation: cleanLine, answer: 0 };
+        let computed = eval(sanitized);
+        return { equation: cleanLine, answer: Number(computed.toFixed(4)) };
       } catch (e) {
         return { equation: cleanLine, answer: 0 };
       }
@@ -498,18 +513,6 @@ STUDENT_HTML = """
       { 
         id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, 
         problems: [{equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}] 
-      },
-      { 
-        id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, 
-        problems: [{equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}] 
-      },
-      { 
-        id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 1, 
-        problems: [{equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}] 
-      },
-      { 
-        id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 1, 
-        problems: [{equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}] 
       }
     ];
 
@@ -552,7 +555,6 @@ STUDENT_HTML = """
         const dueContainer = document.getElementById('due-assignments-list');
         const completedIds = completedHistory.map(item => String(item.id));
         
-        // Show assigned items that haven't been completed yet
         const activeItems = masterStore.filter(item => item.is_assigned === 1 && !completedIds.includes(String(item.id)));
 
         dueContainer.innerHTML = activeItems.length > 0
@@ -599,7 +601,11 @@ STUDENT_HTML = """
 
     function handleFormSubmit(e) {
         e.preventDefault();
-        if (!currentWorksheet) return;
+        if (!currentWorksheet) {
+            alert("Error: Worksheet data missing.");
+            window.location.href = '/student';
+            return;
+        }
 
         const inputs = document.querySelectorAll('.student-answer-input');
         let correctCount = 0;
@@ -616,7 +622,6 @@ STUDENT_HTML = """
         const scorePct = Math.round((correctCount / totalCount) * 100);
         const scoreString = scorePct + "%";
 
-        // Push to Completed History
         completedHistory.unshift({
             id: currentWorksheet.id,
             title: currentWorksheet.title,
@@ -625,7 +630,6 @@ STUDENT_HTML = """
         });
         localStorage.setItem('soroban_completed_history', JSON.stringify(completedHistory));
 
-        // Push to Teacher Grades History
         const savedGrades = localStorage.getItem('soroban_student_grades');
         let grades = savedGrades ? JSON.parse(savedGrades) : [];
         grades.unshift({

@@ -135,8 +135,8 @@ TEACHER_DASHBOARD_HTML = """
         </div>
 
         <div class="form-group">
-            <label>Parsed Problems (Format: <code>4 + 5 - 3 = 6</code> OR just the expression):</label>
-            <textarea id="problems-input" rows="5" placeholder="4 + 5 - 3 + 8 = 14&#10;7 + 2 - 8 = 1"></textarea>
+            <label>Parsed Problems (Format: <code>12 x 15</code> or <code>4 + 5 - 3 = 6</code>):</label>
+            <textarea id="problems-input" rows="5" placeholder="12 x 15&#10;24 x 11&#10;4 + 5 - 3 = 6"></textarea>
         </div>
 
         <div class="btn-group">
@@ -191,18 +191,6 @@ TEACHER_DASHBOARD_HTML = """
       { 
         id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, 
         problems: [{equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}] 
-      },
-      { 
-        id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, 
-        problems: [{equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}] 
-      },
-      { 
-        id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 1, 
-        problems: [{equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}] 
-      },
-      { 
-        id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 1, 
-        problems: [{equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}] 
       }
     ];
 
@@ -271,7 +259,6 @@ TEACHER_DASHBOARD_HTML = """
     }
 
     function reassignToStudent(assignmentId) {
-      // Clears completion status so it shows back up on student dashboard as due
       let completedHistory = JSON.parse(localStorage.getItem('soroban_completed_history') || '[]');
       completedHistory = completedHistory.filter(item => String(item.id) !== String(assignmentId));
       localStorage.setItem('soroban_completed_history', JSON.stringify(completedHistory));
@@ -325,6 +312,7 @@ TEACHER_DASHBOARD_HTML = """
       }
     }
 
+    // Accurate Math Evaluator supporting Multiplication, Division, Addition, Subtraction, and explicit answers
     function parseProblemLine(line) {
       let cleanLine = line.trim();
       let explicitAnswer = null;
@@ -345,16 +333,11 @@ TEACHER_DASHBOARD_HTML = """
 
       try {
         let expr = cleanLine.replace(/x/g, '*').replace(/÷/g, '/');
-        let tokens = expr.match(/([+\-]?)\s*([0-9.]+)/g);
-        if (!tokens) return { equation: cleanLine, answer: 0 };
-
-        let total = 0;
-        tokens.forEach(t => {
-          let num = parseFloat(t.replace(/\s+/g, ''));
-          total += num;
-        });
-
-        return { equation: cleanLine, answer: Math.round(total * 1000) / 1000 };
+        // Safely evaluate standard mathematical expressions (supports multiplication, division, etc.)
+        let sanitized = expr.replace(/[^0-9+\-*/().]/g, '');
+        if (!sanitized) return { equation: cleanLine, answer: 0 };
+        let computed = eval(sanitized);
+        return { equation: cleanLine, answer: Number(computed.toFixed(4)) };
       } catch (e) {
         return { equation: cleanLine, answer: 0 };
       }
@@ -530,18 +513,6 @@ STUDENT_HTML = """
       { 
         id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, 
         problems: [{equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}] 
-      },
-      { 
-        id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, 
-        problems: [{equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}] 
-      },
-      { 
-        id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 1, 
-        problems: [{equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}] 
-      },
-      { 
-        id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 1, 
-        problems: [{equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}] 
       }
     ];
 
@@ -584,7 +555,6 @@ STUDENT_HTML = """
         const dueContainer = document.getElementById('due-assignments-list');
         const completedIds = completedHistory.map(item => String(item.id));
         
-        // Show assigned items that haven't been completed yet
         const activeItems = masterStore.filter(item => item.is_assigned === 1 && !completedIds.includes(String(item.id)));
 
         dueContainer.innerHTML = activeItems.length > 0
@@ -631,13 +601,35 @@ STUDENT_HTML = """
 
     function handleFormSubmit(e) {
         e.preventDefault();
-        if (!currentWorksheet) return;
-rksheet.category,
+        if (!currentWorksheet) {
+            alert("Error: Worksheet data missing.");
+            window.location.href = '/student';
+            return;
+        }
+
+        const inputs = document.querySelectorAll('.student-answer-input');
+        let correctCount = 0;
+        let totalCount = inputs.length;
+
+        inputs.forEach(input => {
+            const val = parseFloat(input.value);
+            const expected = parseFloat(input.dataset.expected);
+            if (!isNaN(val) && val === expected) {
+                correctCount++;
+            }
+        });
+
+        const scorePct = Math.round((correctCount / totalCount) * 100);
+        const scoreString = scorePct + "%";
+
+        completedHistory.unshift({
+            id: currentWorksheet.id,
+            title: currentWorksheet.title,
+            category: currentWorksheet.category,
             score: scoreString
         });
         localStorage.setItem('soroban_completed_history', JSON.stringify(completedHistory));
 
-        // Push to Teacher Grades History
         const savedGrades = localStorage.getItem('soroban_student_grades');
         let grades = savedGrades ? JSON.parse(savedGrades) : [];
         grades.unshift({
