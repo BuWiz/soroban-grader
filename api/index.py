@@ -260,7 +260,10 @@ TEACHER_DASHBOARD_HTML = """
 
     function reassignToStudent(assignmentId) {
       let completedHistory = JSON.parse(localStorage.getItem('soroban_completed_history') || '[]');
-      completedHistory = completedHistory.filter(item => String(item.id) !== String(assignmentId));
+      let target = store.find(item => String(item.id) === String(assignmentId));
+      if (target) {
+        completedHistory = completedHistory.filter(item => item.title.trim().toLowerCase() !== target.title.trim().toLowerCase());
+      }
       localStorage.setItem('soroban_completed_history', JSON.stringify(completedHistory));
       alert("Assignment re-assigned back to student portal!");
       renderAll();
@@ -312,7 +315,6 @@ TEACHER_DASHBOARD_HTML = """
       }
     }
 
-    // Accurate Math Evaluator supporting Multiplication, Division, Addition, Subtraction, and explicit answers
     function parseProblemLine(line) {
       let cleanLine = line.trim();
       let explicitAnswer = null;
@@ -333,7 +335,6 @@ TEACHER_DASHBOARD_HTML = """
 
       try {
         let expr = cleanLine.replace(/x/g, '*').replace(/÷/g, '/');
-        // Safely evaluate standard mathematical expressions (supports multiplication, division, etc.)
         let sanitized = expr.replace(/[^0-9+\-*/().]/g, '');
         if (!sanitized) return { equation: cleanLine, answer: 0 };
         let computed = eval(sanitized);
@@ -553,9 +554,16 @@ STUDENT_HTML = """
         document.getElementById('worksheet-active-view').style.display = 'none';
 
         const dueContainer = document.getElementById('due-assignments-list');
-        const completedIds = completedHistory.map(item => String(item.id));
         
-        const activeItems = masterStore.filter(item => item.is_assigned === 1 && !completedIds.includes(String(item.id)));
+        // Get lowercased titles of completed items so we can match them reliably
+        const completedTitles = completedHistory.map(item => item.title.trim().toLowerCase());
+        
+        // Filter out any item whose title matches a completed history title
+        const activeItems = masterStore.filter(item => {
+            if (item.is_assigned !== 1) return false;
+            let itemTitle = item.title.trim().toLowerCase();
+            return !completedTitles.includes(itemTitle);
+        });
 
         dueContainer.innerHTML = activeItems.length > 0
             ? activeItems.map(item => `
@@ -622,6 +630,8 @@ STUDENT_HTML = """
         const scorePct = Math.round((correctCount / totalCount) * 100);
         const scoreString = scorePct + "%";
 
+        // Push to Completed History (avoiding exact title duplicates)
+        completedHistory = completedHistory.filter(item => item.title.trim().toLowerCase() !== currentWorksheet.title.trim().toLowerCase());
         completedHistory.unshift({
             id: currentWorksheet.id,
             title: currentWorksheet.title,
@@ -630,8 +640,10 @@ STUDENT_HTML = """
         });
         localStorage.setItem('soroban_completed_history', JSON.stringify(completedHistory));
 
+        // Push to Teacher Grades History
         const savedGrades = localStorage.getItem('soroban_student_grades');
         let grades = savedGrades ? JSON.parse(savedGrades) : [];
+        grades = grades.filter(g => g.title.trim().toLowerCase() !== currentWorksheet.title.trim().toLowerCase());
         grades.unshift({
             student: "Leigha",
             title: currentWorksheet.title,
