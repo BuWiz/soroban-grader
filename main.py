@@ -37,39 +37,7 @@ TEACHER_DASHBOARD_HTML = """
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 20px;
-            margin-bottom: 25px;
-        }
-
-        .header h1 { margin: 0; font-size: 2.2em; font-weight: 800; color: #312e81; }
-
-        .btn-switch {
-            background: #2563eb; color: white; text-decoration: none; padding: 12px 22px;
-            border-radius: 14px; font-weight: 800; font-size: 0.95em; cursor: pointer; display: inline-block;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3); border: none;
-        }
-
-        .form-group { margin-bottom: 20px; }
-
-        label { display: block; font-weight: 700; margin-bottom: 8px; color: var(--text-dark); }
-
-        input[type="text"], input[type="number"], textarea, select {
-            width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 12px;
-            font-family: inherit; font-size: 0.95em; box-sizing: border-box; outline: none;
-        }
-
-        .btn-group { display: flex; gap: 12px; margin-top: 15px; }
-
-        .btn {
-            padding: 12px 24px; background: #2563eb; color: white; border: none;
-            border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 0.95em;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
+        .
 
         .btn-secondary { background: #64748b; }
 
@@ -146,7 +114,7 @@ TEACHER_DASHBOARD_HTML = """
 
         <hr>
 
-        <h2>Student Grades & Automated Scoring</h2>
+        <h2>Student Grades & Graded Assignments History</h2>
         <div class="section-block">
             <div id="student-grades-container"></div>
         </div>
@@ -189,11 +157,20 @@ TEACHER_DASHBOARD_HTML = """
 
     const HARDCODED_10_PROBLEMS = [
       { 
-        id: 'f1', title: "f 1", category: "Flash Anzan", type: "Flash Anzan", is_assigned: 1, 
-        problems: [
-          {equation: "4 + 5 - 3 + 8 - 6 + 7 - 2 - 5 + 9 - 4", answer: 13},
-          {equation: "7 + 2 - 8 + 6 + 3 - 5 + 4 - 7 + 9 - 1", answer: 10}
-        ] 
+        id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, 
+        problems: [{equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}] 
+      },
+      { 
+        id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, 
+        problems: [{equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}] 
+      },
+      { 
+        id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 1, 
+        problems: [{equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}] 
+      },
+      { 
+        id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 1, 
+        problems: [{equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}] 
       }
     ];
 
@@ -221,7 +198,7 @@ TEACHER_DASHBOARD_HTML = """
       if (grades.length > 0) {
         container.innerHTML = grades.map(g => `
           <div class="row-item">
-            <div><strong>${g.student}:</strong> ${g.title}</div>
+            <div><strong>${g.student}:</strong> ${g.title} <span class="category-tag">${g.category || 'Worksheet'}</span></div>
             <span class="badge">${g.score}</span>
           </div>
         `).join('');
@@ -255,17 +232,19 @@ TEACHER_DASHBOARD_HTML = """
                 </a> 
                 <span class="category-tag">${a.category || 'Worksheet'}</span>
               </div>
-              <button onclick="reassignToStudent('${a.id}')" class="btn-assign">Assign / View</button>
+              <button onclick="reassignToStudent('${a.id}')" class="btn-assign">Re-assign</button>
             </div>
           `).join('')
         : `<p style="color: #64748b;">No active assignments found under ${currentCategory}.</p>`;
     }
 
     function reassignToStudent(assignmentId) {
-      const target = store.find(item => String(item.id) === String(assignmentId));
-      if (target) {
-        window.location.href = '/student?assignment_id=' + assignmentId;
-      }
+      // Clears completion status so it shows back up on student dashboard as due
+      let completedHistory = JSON.parse(localStorage.getItem('soroban_completed_history') || '[]');
+      completedHistory = completedHistory.filter(item => String(item.id) !== String(assignmentId));
+      localStorage.setItem('soroban_completed_history', JSON.stringify(completedHistory));
+      alert("Assignment re-assigned back to student portal!");
+      renderAll();
     }
 
     function renderDrafts() {
@@ -283,7 +262,7 @@ TEACHER_DASHBOARD_HTML = """
         ? draftItems.map(d => `
             <div class="row-item">
               <div><strong>${d.title}</strong> <span class="category-tag">${d.category || 'Worksheet'}</span></div>
-              <button onclick="submitDraftDirectly('${d.id}')" class="btn-assign">Submit</button>
+              <button onclick="submitDraftDirectly('${d.id}')" class="btn-assign">Submit to Student</button>
             </div>
           `).join('')
         : `<p style="color: #64748b;">No saved drafts found under ${currentDraftCategory}.</p>`;
@@ -517,11 +496,20 @@ STUDENT_HTML = """
     <script>
     const HARDCODED_10_PROBLEMS = [
       { 
-        id: 'f1', title: "f 1", category: "Flash Anzan", type: "Flash Anzan", is_assigned: 1, 
-        problems: [
-          {equation: "4 + 5 - 3 + 8 - 6 + 7 - 2 - 5 + 9 - 4", answer: 13},
-          {equation: "7 + 2 - 8 + 6 + 3 - 5 + 4 - 7 + 9 - 1", answer: 10}
-        ] 
+        id: '1', title: "addition 1", category: "Addition", type: "Addition", is_assigned: 1, 
+        problems: [{equation: "15 + 27", answer: 42}, {equation: "34 + 18", answer: 52}] 
+      },
+      { 
+        id: '2', title: "division 1", category: "Division", type: "Division", is_assigned: 1, 
+        problems: [{equation: "12 / 3", answer: 4}, {equation: "24 / 6", answer: 4}] 
+      },
+      { 
+        id: '3', title: "2dgt by 2 dgt multiplication", category: "Multiplication", type: "Multiplication", is_assigned: 1, 
+        problems: [{equation: "12 x 15", answer: 180}, {equation: "24 x 11", answer: 264}] 
+      },
+      { 
+        id: '4', title: "100s (-) 3", category: "Subtraction", type: "Subtraction", is_assigned: 1, 
+        problems: [{equation: "100 - 3", answer: 97}, {equation: "100 - 14", answer: 86}] 
       }
     ];
 
@@ -562,8 +550,10 @@ STUDENT_HTML = """
         document.getElementById('worksheet-active-view').style.display = 'none';
 
         const dueContainer = document.getElementById('due-assignments-list');
-        // Directly pull all items from the master store that are marked as assigned (is_assigned === 1)
-        const activeItems = masterStore.filter(item => item.is_assigned === 1);
+        const completedIds = completedHistory.map(item => String(item.id));
+        
+        // Show assigned items that haven't been completed yet
+        const activeItems = masterStore.filter(item => item.is_assigned === 1 && !completedIds.includes(String(item.id)));
 
         dueContainer.innerHTML = activeItems.length > 0
             ? activeItems.map(item => `
@@ -575,7 +565,7 @@ STUDENT_HTML = """
                     <button class="btn-start" onclick="window.location.href='/student?assignment_id=${item.id}'">Start Assignment</button>
                 </div>
             `).join('')
-            : '<p style="color: #64748b;">No due assignments right now!</p>';
+            : '<p style="color: #64748b;">No due assignments right now! Great job completing them all!</p>';
 
         const completedContainer = document.getElementById('completed-assignments-list');
         completedContainer.innerHTML = completedHistory.length > 0
@@ -626,6 +616,7 @@ STUDENT_HTML = """
         const scorePct = Math.round((correctCount / totalCount) * 100);
         const scoreString = scorePct + "%";
 
+        // Push to Completed History
         completedHistory.unshift({
             id: currentWorksheet.id,
             title: currentWorksheet.title,
@@ -634,11 +625,13 @@ STUDENT_HTML = """
         });
         localStorage.setItem('soroban_completed_history', JSON.stringify(completedHistory));
 
+        // Push to Teacher Grades History
         const savedGrades = localStorage.getItem('soroban_student_grades');
         let grades = savedGrades ? JSON.parse(savedGrades) : [];
         grades.unshift({
             student: "Leigha",
             title: currentWorksheet.title,
+            category: currentWorksheet.category,
             score: scorePct + "% Correct"
         });
         localStorage.setItem('soroban_student_grades', JSON.stringify(grades));
@@ -662,4 +655,7 @@ def teacher_portal():
 @app.route('/student')
 @app.route('/student.html')
 def student_portal():
-    
+    return render_template_string(STUDENT_HTML)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5050, debug=True)
